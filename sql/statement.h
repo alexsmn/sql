@@ -3,6 +3,7 @@
 #include "sql/connection.h"
 #include "sql/sqlite3/statement.h"
 
+#include <memory>
 #include <string>
 
 namespace sql {
@@ -16,74 +17,63 @@ class Statement {
   Statement(const Statement&) = delete;
   Statement& operator=(const Statement&) = delete;
 
-  Statement(Statement&& source) noexcept
-      : sqlite3_statement_{std::move(source.sqlite3_statement_)} {}
+  Statement(Statement&& source) noexcept : model_{std::move(source.model_)} {}
   Statement& operator=(Statement&& source) noexcept {
-    sqlite3_statement_ = std::move(source.sqlite3_statement_);
+    model_ = std::move(source.model_);
     return *this;
   }
 
-  bool IsInitialized() const { return sqlite3_statement_.IsInitialized(); };
+  bool IsInitialized() const { return model_ && model_->IsInitialized(); };
 
   void Init(Connection& connection, const char* sql) {
-    sqlite3_statement_.Init(connection.sqlite3_connection_, sql);
+    model_ = connection.model_->CreateStatementModel(sql);
   }
 
-  void BindNull(unsigned column) { sqlite3_statement_.BindNull(column); }
-  void Bind(unsigned column, bool value) {
-    sqlite3_statement_.Bind(column, value);
-  }
-  void Bind(unsigned column, int value) {
-    sqlite3_statement_.Bind(column, value);
-  }
-  void Bind(unsigned column, int64_t value) {
-    sqlite3_statement_.Bind(column, value);
-  }
-  void Bind(unsigned column, double value) {
-    sqlite3_statement_.Bind(column, value);
-  }
-  void Bind(unsigned column, const char* value) {
-    sqlite3_statement_.Bind(column, value);
-  }
+  void BindNull(unsigned column) { model_->BindNull(column); }
+  void Bind(unsigned column, bool value) { model_->Bind(column, value); }
+  void Bind(unsigned column, int value) { model_->Bind(column, value); }
+  void Bind(unsigned column, int64_t value) { model_->Bind(column, value); }
+  void Bind(unsigned column, double value) { model_->Bind(column, value); }
+  void Bind(unsigned column, const char* value) { model_->Bind(column, value); }
   void Bind(unsigned column, const std::string& value) {
-    sqlite3_statement_.Bind(column, value);
+    model_->Bind(column, value);
   }
   void Bind(unsigned column, const std::wstring& value) {
-    sqlite3_statement_.Bind(column, value);
+    model_->Bind(column, value);
   }
 
-  size_t GetColumnCount() const { return sqlite3_statement_.GetColumnCount(); }
+  size_t GetColumnCount() const { return model_->GetColumnCount(); }
   ColumnType GetColumnType(unsigned column) const {
-    return sqlite3_statement_.GetColumnType(column);
+    return model_->GetColumnType(column);
   }
 
   bool GetColumnBool(unsigned column) const {
-    return sqlite3_statement_.GetColumnBool(column);
+    return model_->GetColumnBool(column);
   }
   int GetColumnInt(unsigned column) const {
-    return sqlite3_statement_.GetColumnInt(column);
+    return model_->GetColumnInt(column);
   }
   int64_t GetColumnInt64(unsigned column) const {
-    return sqlite3_statement_.GetColumnInt64(column);
+    return model_->GetColumnInt64(column);
   }
   double GetColumnDouble(unsigned column) const {
-    return sqlite3_statement_.GetColumnDouble(column);
+    return model_->GetColumnDouble(column);
   }
   std::string GetColumnString(unsigned column) const {
-    return sqlite3_statement_.GetColumnString(column);
+    return model_->GetColumnString(column);
   }
   std::wstring GetColumnString16(unsigned column) const {
-    return sqlite3_statement_.GetColumnString16(column);
+    return model_->GetColumnString16(column);
   }
 
-  void Run() { sqlite3_statement_.Run(); }
-  bool Step() { return sqlite3_statement_.Step(); }
-  void Reset() { sqlite3_statement_.Reset(); }
+  void Run() { model_->Run(); }
+  bool Step() { return model_->Step(); }
+  void Reset() { model_->Reset(); }
 
-  void Close() { sqlite3_statement_.Close(); }
+  void Close() { model_->Close(); }
 
  private:
-  sqlite3::Statement sqlite3_statement_;
+  std::unique_ptr<Connection::StatementModel> model_;
 };
 
 }  // namespace sql
