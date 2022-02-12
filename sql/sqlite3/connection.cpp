@@ -1,13 +1,13 @@
-#include "sql/connection.h"
+#include "sql/sqlite3/connection.h"
 
 #include "base/strings/stringprintf.h"
-#include "sql/exception.h"
-#include "sql/statement.h"
+#include "sql/sqlite3/exception.h"
+#include "sql/sqlite3/statement.h"
 
 #include <cassert>
 #include <sqlite3.h>
 
-namespace sql {
+namespace sql::sqlite3 {
 
 Connection::Connection()
     : db_(NULL), exclusive_locking_(false), journal_size_limit_(-1) {}
@@ -162,4 +162,4 @@ int Connection::GetLastChangeCount() const {
   return sqlite3_changes(db_);
 }
 
-}  // namespace sql
+}  // namespace sql::sqlite3

@@ -4,11 +4,9 @@
 
 namespace sql {
 
-class Connection;
-
 class Exception : public std::runtime_error {
  public:
-  explicit Exception(Connection& connection);
+  using std::runtime_error::runtime_error;
 };
 
-} // namespace sql
+}  // namespace sql

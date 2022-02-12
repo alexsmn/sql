@@ -1,6 +1,6 @@
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 
-file(GLOB sql_sources
+file(GLOB_RECURSE sql_sources
   "*.cpp"
   "*.h"
 )

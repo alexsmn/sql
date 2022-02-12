@@ -1,13 +1,13 @@
-#include "sql/statement.h"
+#include "sql/sqlite3/statement.h"
 
 #include "base/strings/utf_string_conversions.h"
-#include "sql/connection.h"
-#include "sql/exception.h"
+#include "sql/sqlite3/connection.h"
+#include "sql/sqlite3/exception.h"
 
 #include <cassert>
 #include <sqlite3.h>
 
-namespace sql {
+namespace sql::sqlite3 {
 
 Statement::Statement() : connection_(NULL), stmt_(NULL) {}
 
@@ -167,4 +167,4 @@ void Statement::Close() {
   }
 }
 
-}  // namespace sql
+}  // namespace sql::sqlite3
