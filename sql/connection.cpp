@@ -87,7 +87,7 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual void Bind(unsigned column, const std::string& value) override {
     statement_.Bind(column, value);
   }
-  virtual void Bind(unsigned column, const std::wstring& value) override {
+  virtual void Bind(unsigned column, const std::u16string& value) override {
     statement_.Bind(column, value);
   }
 
@@ -113,7 +113,7 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual std::string GetColumnString(unsigned column) const override {
     return statement_.GetColumnString(column);
   }
-  virtual std::wstring GetColumnString16(unsigned column) const override {
+  virtual std::u16string GetColumnString16(unsigned column) const override {
     return statement_.GetColumnString16(column);
   }
 

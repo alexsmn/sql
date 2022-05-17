@@ -1,8 +1,8 @@
 #pragma once
 
-#include <filesystem>
-
 #include "sql/types.h"
+
+#include <filesystem>
 
 namespace sql {
 
@@ -55,7 +55,7 @@ class Connection {
     virtual void Bind(unsigned column, double value) = 0;
     virtual void Bind(unsigned column, const char* value) = 0;
     virtual void Bind(unsigned column, const std::string& value) = 0;
-    virtual void Bind(unsigned column, const std::wstring& value) = 0;
+    virtual void Bind(unsigned column, const std::u16string& value) = 0;
 
     virtual size_t GetColumnCount() const = 0;
     virtual ColumnType GetColumnType(unsigned column) const = 0;
@@ -65,7 +65,7 @@ class Connection {
     virtual int64_t GetColumnInt64(unsigned column) const = 0;
     virtual double GetColumnDouble(unsigned column) const = 0;
     virtual std::string GetColumnString(unsigned column) const = 0;
-    virtual std::wstring GetColumnString16(unsigned column) const = 0;
+    virtual std::u16string GetColumnString16(unsigned column) const = 0;
 
     virtual void Run() = 0;
     virtual bool Step() = 0;

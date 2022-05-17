@@ -32,7 +32,7 @@ class Statement {
   void Bind(unsigned column, double value);
   void Bind(unsigned column, const char* value);
   void Bind(unsigned column, const std::string& value);
-  void Bind(unsigned column, const std::wstring& value);
+  void Bind(unsigned column, const std::u16string& value);
 
   size_t GetColumnCount() const;
   ColumnType GetColumnType(unsigned column) const;
@@ -42,7 +42,7 @@ class Statement {
   int64_t GetColumnInt64(unsigned column) const;
   double GetColumnDouble(unsigned column) const;
   std::string GetColumnString(unsigned column) const;
-  std::wstring GetColumnString16(unsigned column) const;
+  std::u16string GetColumnString16(unsigned column) const;
 
   void Run();
   bool Step();

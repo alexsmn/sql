@@ -84,7 +84,7 @@ void Statement::Bind(unsigned column, const std::string& value) {
     throw Exception(*connection_);
 }
 
-void Statement::Bind(unsigned column, const std::wstring& value) {
+void Statement::Bind(unsigned column, const std::u16string& value) {
   return Bind(column, base::UTF16ToUTF8(value));
 }
 
@@ -132,9 +132,9 @@ std::string Statement::GetColumnString(unsigned column) const {
     return std::string();
 }
 
-std::wstring Statement::GetColumnString16(unsigned column) const {
+std::u16string Statement::GetColumnString16(unsigned column) const {
   std::string string = GetColumnString(column);
-  return string.empty() ? std::wstring() : base::UTF8ToUTF16(string);
+  return string.empty() ? std::u16string() : base::UTF8ToUTF16(string);
 }
 
 void Statement::Run() {

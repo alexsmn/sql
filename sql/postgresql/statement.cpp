@@ -85,7 +85,7 @@ void Statement::Bind(unsigned column, const std::string& value) {
 }
 
 void Statement::Bind(unsigned column, const std::wstring& value) {
-  return Bind(column, base::UTF16ToUTF8(value));
+  return Bind(column, base::WideToUTF8(value));
 }
 
 size_t Statement::GetColumnCount() const {
@@ -134,7 +134,7 @@ std::string Statement::GetColumnString(unsigned column) const {
 
 std::wstring Statement::GetColumnString16(unsigned column) const {
   std::string string = GetColumnString(column);
-  return string.empty() ? std::wstring() : base::UTF8ToUTF16(string);
+  return string.empty() ? std::wstring() : base::UTF8ToWide(string);
 }
 
 void Statement::Run() {

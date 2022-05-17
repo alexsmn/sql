@@ -38,7 +38,7 @@ class Statement {
   void Bind(unsigned column, const std::string& value) {
     model_->Bind(column, value);
   }
-  void Bind(unsigned column, const std::wstring& value) {
+  void Bind(unsigned column, const std::u16string& value) {
     model_->Bind(column, value);
   }
 
@@ -62,7 +62,7 @@ class Statement {
   std::string GetColumnString(unsigned column) const {
     return model_->GetColumnString(column);
   }
-  std::wstring GetColumnString16(unsigned column) const {
+  std::u16string GetColumnString16(unsigned column) const {
     return model_->GetColumnString16(column);
   }
 
