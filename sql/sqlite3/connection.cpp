@@ -9,29 +9,34 @@
 
 namespace sql::sqlite3 {
 
-Connection::Connection()
-    : db_(NULL), exclusive_locking_(false), journal_size_limit_(-1) {}
+Connection::Connection() {}
 
 Connection::~Connection() {
   Close();
 }
 
-void Connection::Open(const std::filesystem::path& path) {
+void Connection::Open(const OpenParams& params) {
   assert(!db_);
 
-  int error = sqlite3_open16(path.u16string().c_str(), &db_);
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+  if (params.multithreaded)
+    flags |= SQLITE_OPEN_NOMUTEX;
+
+  int error = sqlite3_open_v2(
+      reinterpret_cast<const char*>(params.path.u8string().c_str()), &db_,
+      flags, nullptr);
   if (error != SQLITE_OK) {
     db_ = NULL;
     throw Exception(*this);
   }
 
-  if (exclusive_locking_)
+  if (params.exclusive_locking)
     Execute("PRAGMA locking_mode=EXCLUSIVE");
 
-  if (journal_size_limit_ != -1)
-    Execute(
-        base::StringPrintf("PRAGMA journal_size_limit=%d", journal_size_limit_)
-            .c_str());
+  if (params.journal_size_limit != -1)
+    Execute(base::StringPrintf("PRAGMA journal_size_limit=%d",
+                               params.journal_size_limit)
+                .c_str());
 }
 
 void Connection::Close() {

@@ -8,22 +8,18 @@ namespace sql {
 template <class ConnectionType, class StatementType>
 class Connection::ConnectionModelImpl : public ConnectionModel {
  public:
-  virtual void set_exclusive_locking() override {
-    connection_.set_exclusive_locking();
-  }
-  virtual void set_journal_size_limit(int limit) override {
-    connection_.set_journal_size_limit(limit);
+  virtual void Open(const OpenParams& params) override {
+    connection_.Open(params);
   }
 
-  virtual void Open(const std::filesystem::path& path) override {
-    connection_.Open(path);
-  }
   virtual void Close() override { connection_.Close(); }
 
   virtual void Execute(const char* sql) override { connection_.Execute(sql); }
 
   virtual void BeginTransaction() override { connection_.BeginTransaction(); }
+
   virtual void CommitTransaction() override { connection_.CommitTransaction(); }
+
   virtual void RollbackTransaction() override {
     connection_.RollbackTransaction();
   }
@@ -35,10 +31,12 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
   virtual bool DoesTableExist(const char* table_name) const override {
     return connection_.DoesTableExist(table_name);
   }
+
   virtual bool DoesColumnExist(const char* table_name,
                                const char* column_name) const override {
     return connection_.DoesColumnExist(table_name, column_name);
   }
+
   virtual bool DoesIndexExist(const char* table_name,
                               const char* index_name) const override {
     return connection_.DoesIndexExist(table_name, index_name);
@@ -94,6 +92,7 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual size_t GetColumnCount() const override {
     return statement_.GetColumnCount();
   }
+
   virtual ColumnType GetColumnType(unsigned column) const override {
     return statement_.GetColumnType(column);
   }
@@ -120,7 +119,6 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual void Run() override { statement_.Run(); }
   virtual bool Step() override { return statement_.Step(); }
   virtual void Reset() override { statement_.Reset(); }
-
   virtual void Close() override { statement_.Close(); }
 
  private:

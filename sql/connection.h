@@ -15,12 +15,7 @@ class Connection {
   Connection(const Connection&) = delete;
   Connection& operator=(const Connection&) = delete;
 
-  void set_exclusive_locking() { model_->set_exclusive_locking(); }
-  void set_journal_size_limit(int limit) {
-    model_->set_journal_size_limit(limit);
-  }
-
-  void Open(const std::filesystem::path& path) { model_->Open(path); }
+  void Open(const OpenParams& params) { model_->Open(params); }
   void Close() { model_->Close(); }
 
   void Execute(const char* sql) { model_->Execute(sql); }
@@ -78,10 +73,7 @@ class Connection {
    public:
     virtual ~ConnectionModel() = default;
 
-    virtual void set_exclusive_locking() = 0;
-    virtual void set_journal_size_limit(int limit) = 0;
-
-    virtual void Open(const std::filesystem::path& path) = 0;
+    virtual void Open(const OpenParams& params) = 0;
     virtual void Close() = 0;
 
     virtual void Execute(const char* sql) = 0;
