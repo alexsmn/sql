@@ -1,7 +1,7 @@
 #include "sql/sqlite3/connection.h"
 
 #include "base/strings/stringprintf.h"
-#include "sql/sqlite3/exception.h"
+#include "sql/exception.h"
 #include "sql/sqlite3/statement.h"
 
 #include <cassert>
@@ -27,7 +27,7 @@ void Connection::Open(const OpenParams& params) {
       flags, nullptr);
   if (error != SQLITE_OK) {
     db_ = NULL;
-    throw Exception(*this);
+    throw Exception{"Open error"};
   }
 
   if (params.exclusive_locking)
@@ -49,7 +49,7 @@ void Connection::Close() {
 
   if (db_) {
     if (sqlite3_close(db_) != SQLITE_OK)
-      throw Exception(*this);
+      throw Exception{sqlite3_errmsg(db_)};
     db_ = NULL;
   }
 }
@@ -57,7 +57,7 @@ void Connection::Close() {
 void Connection::Execute(const char* sql) {
   assert(db_);
   if (sqlite3_exec(db_, sql, NULL, NULL, NULL) != SQLITE_OK)
-    throw Exception(*this);
+    throw Exception{sqlite3_errmsg(db_)};
 }
 
 bool Connection::DoesTableExist(const char* table_name) const {

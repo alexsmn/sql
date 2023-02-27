@@ -1,8 +1,8 @@
 #include "sql/postgresql/statement.h"
 
 #include "base/strings/utf_string_conversions.h"
+#include "sql/exception.h"
 #include "sql/postgresql/connection.h"
-#include "sql/postgresql/exception.h"
 
 #include <cassert>
 #include <sqlite3.h>
@@ -37,7 +37,7 @@ void Statement::Init(Connection& connection, const char* sql) {
   int error = sqlite3_prepare_v2(connection.db_, sql, -1, &stmt_, NULL);
   if (error != SQLITE_OK) {
     stmt_ = NULL;
-    throw Exception(connection);
+    throw Exception{sqlite3_errmsg(connection.db_)};
   }
 
   connection_ = &connection;
@@ -45,7 +45,7 @@ void Statement::Init(Connection& connection, const char* sql) {
 
 void Statement::BindNull(unsigned column) {
   if (sqlite3_bind_null(stmt_, column + 1) != SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, bool value) {
@@ -55,33 +55,33 @@ void Statement::Bind(unsigned column, bool value) {
 void Statement::Bind(unsigned column, int value) {
   assert(stmt_);
   if (sqlite3_bind_int(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, int64_t value) {
   assert(stmt_);
   if (sqlite3_bind_int64(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, double value) {
   assert(stmt_);
   if (sqlite3_bind_double(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, const char* value) {
   assert(stmt_);
   if (sqlite3_bind_text(stmt_, column + 1, value, -1, SQLITE_TRANSIENT) !=
       SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, const std::string& value) {
   assert(stmt_);
   if (sqlite3_bind_text(stmt_, column + 1, value.data(), value.length(),
                         SQLITE_TRANSIENT) != SQLITE_OK)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Bind(unsigned column, const std::wstring& value) {
@@ -141,7 +141,7 @@ void Statement::Run() {
   assert(stmt_);
   int result = sqlite3_step(stmt_);
   if (result != SQLITE_DONE)
-    throw Exception(*connection_);
+    throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 bool Statement::Step() {
@@ -151,7 +151,7 @@ bool Statement::Step() {
     return true;
   if (result == SQLITE_DONE)
     return false;
-  throw Exception(*connection_);
+  throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
 void Statement::Reset() {

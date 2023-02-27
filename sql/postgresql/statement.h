@@ -51,8 +51,8 @@ class Statement {
   void Close();
 
  private:
-  Connection* connection_;
-  ::sqlite3_stmt* stmt_;
+  Connection* connection_ = nullptr;
+  ::sqlite3_stmt* stmt_ = nullptr;
 };
 
 }  // namespace sql::postgresql

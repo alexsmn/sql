@@ -11,7 +11,6 @@ struct OpenParams;
 
 namespace sql::sqlite3 {
 
-class Exception;
 class Statement;
 
 class Connection {
@@ -50,7 +49,6 @@ class Connection {
   mutable std::string does_column_exist_table_name_;
   mutable std::string does_index_exist_table_name_;
 
-  friend class Exception;
   friend class Statement;
 };
 

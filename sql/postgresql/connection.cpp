@@ -1,7 +1,7 @@
 #include "sql/postgresql/connection.h"
 
 #include "base/strings/stringprintf.h"
-#include "sql/postgresql/exception.h"
+#include "sql/exception.h"
 #include "sql/postgresql/statement.h"
 
 #include <cassert>
@@ -22,16 +22,17 @@ void Connection::Open(const std::filesystem::path& path) {
   int error = sqlite3_open16(path.u16string().c_str(), &db_);
   if (error != SQLITE_OK) {
     db_ = NULL;
-    throw Exception(*this);
+    throw Exception{"Open error"};
   }
 
   if (exclusive_locking_)
     Execute("PRAGMA locking_mode=EXCLUSIVE");
 
-  if (journal_size_limit_ != -1)
+  if (journal_size_limit_ != -1) {
     Execute(
         base::StringPrintf("PRAGMA journal_size_limit=%d", journal_size_limit_)
             .c_str());
+  }
 }
 
 void Connection::Close() {
@@ -44,7 +45,7 @@ void Connection::Close() {
 
   if (db_) {
     if (sqlite3_close(db_) != SQLITE_OK)
-      throw Exception(*this);
+      throw Exception{sqlite3_errmsg(db_)};
     db_ = NULL;
   }
 }
@@ -52,7 +53,7 @@ void Connection::Close() {
 void Connection::Execute(const char* sql) {
   assert(db_);
   if (sqlite3_exec(db_, sql, NULL, NULL, NULL) != SQLITE_OK)
-    throw Exception(*this);
+    throw Exception{sqlite3_errmsg(db_)};
 }
 
 bool Connection::DoesTableExist(const char* table_name) const {

@@ -7,7 +7,6 @@ struct sqlite3;
 
 namespace sql::postgresql {
 
-class Exception;
 class Statement;
 
 class Connection {
@@ -37,9 +36,6 @@ class Connection {
   bool DoesIndexExist(const char* table_name, const char* index_name) const;
 
  private:
-  friend class Exception;
-  friend class Statement;
-
   ::sqlite3* db_;
 
   bool exclusive_locking_;
@@ -54,6 +50,8 @@ class Connection {
   mutable std::unique_ptr<Statement> does_index_exist_statement_;
   mutable std::string does_column_exist_table_name_;
   mutable std::string does_index_exist_table_name_;
+
+  friend class Statement;
 };
 
 }  // namespace sql::postgresql
