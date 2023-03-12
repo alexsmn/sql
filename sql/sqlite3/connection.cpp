@@ -1,10 +1,10 @@
 #include "sql/sqlite3/connection.h"
 
-#include "base/strings/stringprintf.h"
 #include "sql/exception.h"
 #include "sql/sqlite3/statement.h"
 
 #include <cassert>
+#include <format>
 #include <sqlite3.h>
 
 namespace sql::sqlite3 {
@@ -33,10 +33,11 @@ void Connection::Open(const OpenParams& params) {
   if (params.exclusive_locking)
     Execute("PRAGMA locking_mode=EXCLUSIVE");
 
-  if (params.journal_size_limit != -1)
-    Execute(base::StringPrintf("PRAGMA journal_size_limit=%d",
-                               params.journal_size_limit)
-                .c_str());
+  if (params.journal_size_limit != -1) {
+    Execute(
+        std::format("PRAGMA journal_size_limit={}", params.journal_size_limit)
+            .c_str());
+  }
 }
 
 void Connection::Close() {

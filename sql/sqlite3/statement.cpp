@@ -1,9 +1,9 @@
 #include "sql/sqlite3/statement.h"
 
-#include "base/strings/utf_string_conversions.h"
 #include "sql/exception.h"
 #include "sql/sqlite3/connection.h"
 
+#include <boost/locale/encoding_utf.hpp>
 #include <cassert>
 #include <sqlite3.h>
 
@@ -85,7 +85,7 @@ void Statement::Bind(unsigned column, const std::string& value) {
 }
 
 void Statement::Bind(unsigned column, const std::u16string& value) {
-  return Bind(column, base::UTF16ToUTF8(value));
+  return Bind(column, boost::locale::conv::utf_to_utf<char>(value));
 }
 
 size_t Statement::GetColumnCount() const {
@@ -134,7 +134,8 @@ std::string Statement::GetColumnString(unsigned column) const {
 
 std::u16string Statement::GetColumnString16(unsigned column) const {
   std::string string = GetColumnString(column);
-  return string.empty() ? std::u16string() : base::UTF8ToUTF16(string);
+  return string.empty() ? std::u16string()
+                        : boost::locale::conv::utf_to_utf<char16_t>(string);
 }
 
 void Statement::Run() {

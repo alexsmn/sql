@@ -1,10 +1,10 @@
 #include "sql/postgresql/connection.h"
 
-#include "base/strings/stringprintf.h"
 #include "sql/exception.h"
 #include "sql/postgresql/statement.h"
 
 #include <cassert>
+#include <format>
 #include <sqlite3.h>
 
 namespace sql::postgresql {
@@ -26,9 +26,9 @@ void Connection::Open(const OpenParams& params) {
     Execute("PRAGMA locking_mode=EXCLUSIVE");
 
   if (params.journal_size_limit != -1) {
-    Execute(base::StringPrintf("PRAGMA journal_size_limit=%d",
-                               params.journal_size_limit)
-                .c_str());
+    Execute(
+        std::format("PRAGMA journal_size_limit={}", params.journal_size_limit)
+            .c_str());
   }
 }
 
