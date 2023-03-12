@@ -23,54 +23,34 @@ class Statement {
     return *this;
   }
 
-  bool IsInitialized() const { return model_ && model_->IsInitialized(); };
+  bool IsInitialized() const;
 
-  void Init(Connection& connection, const char* sql) {
-    model_ = connection.model_->CreateStatementModel(sql);
-  }
+  void Init(Connection& connection, const char* sql);
 
-  void BindNull(unsigned column) { model_->BindNull(column); }
-  void Bind(unsigned column, bool value) { model_->Bind(column, value); }
-  void Bind(unsigned column, int value) { model_->Bind(column, value); }
-  void Bind(unsigned column, int64_t value) { model_->Bind(column, value); }
-  void Bind(unsigned column, double value) { model_->Bind(column, value); }
-  void Bind(unsigned column, const char* value) { model_->Bind(column, value); }
-  void Bind(unsigned column, const std::string& value) {
-    model_->Bind(column, value);
-  }
-  void Bind(unsigned column, const std::u16string& value) {
-    model_->Bind(column, value);
-  }
+  void BindNull(unsigned column);
+  void Bind(unsigned column, bool value);
+  void Bind(unsigned column, int value);
+  void Bind(unsigned column, int64_t value);
+  void Bind(unsigned column, double value);
+  void Bind(unsigned column, const char* value);
+  void Bind(unsigned column, const std::string& value);
+  void Bind(unsigned column, const std::u16string& value);
 
-  size_t GetColumnCount() const { return model_->GetColumnCount(); }
-  ColumnType GetColumnType(unsigned column) const {
-    return model_->GetColumnType(column);
-  }
+  size_t GetColumnCount() const;
+  ColumnType GetColumnType(unsigned column) const;
 
-  bool GetColumnBool(unsigned column) const {
-    return model_->GetColumnBool(column);
-  }
-  int GetColumnInt(unsigned column) const {
-    return model_->GetColumnInt(column);
-  }
-  int64_t GetColumnInt64(unsigned column) const {
-    return model_->GetColumnInt64(column);
-  }
-  double GetColumnDouble(unsigned column) const {
-    return model_->GetColumnDouble(column);
-  }
-  std::string GetColumnString(unsigned column) const {
-    return model_->GetColumnString(column);
-  }
-  std::u16string GetColumnString16(unsigned column) const {
-    return model_->GetColumnString16(column);
-  }
+  bool GetColumnBool(unsigned column) const;
+  int GetColumnInt(unsigned column) const;
+  int64_t GetColumnInt64(unsigned column) const;
+  double GetColumnDouble(unsigned column) const;
+  std::string GetColumnString(unsigned column) const;
+  std::u16string GetColumnString16(unsigned column) const;
 
-  void Run() { model_->Run(); }
-  bool Step() { return model_->Step(); }
-  void Reset() { model_->Reset(); }
+  void Run();
+  bool Step();
+  void Reset();
 
-  void Close() { model_->Close(); }
+  void Close();
 
  private:
   std::unique_ptr<Connection::StatementModel> model_;

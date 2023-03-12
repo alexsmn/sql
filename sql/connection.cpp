@@ -132,7 +132,8 @@ class Connection::StatementModelImpl : public StatementModel {
 void Connection::Open(const OpenParams& params) {
   assert(!model_);
 
-  if (params.driver.empty() || params.driver == "sqlite3") {
+  if (params.driver.empty() || params.driver == "sqlite" ||
+      params.driver == "sqlite3") {
     model_ = std::make_unique<
         ConnectionModelImpl<sqlite3::Connection, sqlite3::Statement>>();
   } else if (params.driver == "postgresql") {
