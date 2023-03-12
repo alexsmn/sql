@@ -9,29 +9,26 @@
 
 namespace sql::postgresql {
 
-Connection::Connection()
-    : db_(NULL), exclusive_locking_(false), journal_size_limit_(-1) {}
-
 Connection::~Connection() {
   Close();
 }
 
-void Connection::Open(const std::filesystem::path& path) {
+void Connection::Open(const OpenParams& params) {
   assert(!db_);
 
-  int error = sqlite3_open16(path.u16string().c_str(), &db_);
+  int error = sqlite3_open16(params.path.u16string().c_str(), &db_);
   if (error != SQLITE_OK) {
     db_ = NULL;
     throw Exception{"Open error"};
   }
 
-  if (exclusive_locking_)
+  if (params.exclusive_locking)
     Execute("PRAGMA locking_mode=EXCLUSIVE");
 
-  if (journal_size_limit_ != -1) {
-    Execute(
-        base::StringPrintf("PRAGMA journal_size_limit=%d", journal_size_limit_)
-            .c_str());
+  if (params.journal_size_limit != -1) {
+    Execute(base::StringPrintf("PRAGMA journal_size_limit=%d",
+                               params.journal_size_limit)
+                .c_str());
   }
 }
 

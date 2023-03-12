@@ -1,9 +1,13 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
+#include <string>
 
 struct sqlite3;
+
+namespace sql {
+struct OpenParams;
+}
 
 namespace sql::postgresql {
 
@@ -11,16 +15,13 @@ class Statement;
 
 class Connection {
  public:
-  Connection();
+  Connection() = default;
   ~Connection();
 
   Connection(const Connection&) = delete;
   Connection& operator=(const Connection&) = delete;
 
-  void set_exclusive_locking() { exclusive_locking_ = true; }
-  void set_journal_size_limit(int limit) { journal_size_limit_ = limit; }
-
-  void Open(const std::filesystem::path& path);
+  void Open(const OpenParams& params);
   void Close();
 
   void Execute(const char* sql);
@@ -36,10 +37,7 @@ class Connection {
   bool DoesIndexExist(const char* table_name, const char* index_name) const;
 
  private:
-  ::sqlite3* db_;
-
-  bool exclusive_locking_;
-  int journal_size_limit_;
+  ::sqlite3* db_ = nullptr;
 
   mutable std::unique_ptr<Statement> begin_transaction_statement_;
   mutable std::unique_ptr<Statement> commit_transaction_statement_;

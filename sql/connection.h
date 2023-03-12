@@ -10,12 +10,12 @@ class Statement;
 
 class Connection {
  public:
-  Connection();
+  Connection() = default;
 
   Connection(const Connection&) = delete;
   Connection& operator=(const Connection&) = delete;
 
-  void Open(const OpenParams& params) { model_->Open(params); }
+  void Open(const OpenParams& params);
   void Close() { model_->Close(); }
 
   void Execute(const char* sql) { model_->Execute(sql); }

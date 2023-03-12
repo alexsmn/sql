@@ -9,19 +9,17 @@
 
 namespace sql::postgresql {
 
-Statement::Statement() : connection_(NULL), stmt_(NULL) {}
-
 Statement::~Statement() {
   Close();
 }
 
-Statement::Statement(Statement&& source)
+Statement::Statement(Statement&& source) noexcept
     : connection_{source.connection_}, stmt_{source.stmt_} {
   source.connection_ = nullptr;
   source.stmt_ = nullptr;
 }
 
-Statement& Statement::operator=(Statement&& source) {
+Statement& Statement::operator=(Statement&& source) noexcept {
   if (this != &source) {
     connection_ = source.connection_;
     stmt_ = source.stmt_;
@@ -34,9 +32,9 @@ Statement& Statement::operator=(Statement&& source) {
 void Statement::Init(Connection& connection, const char* sql) {
   assert(connection.db_);
 
-  int error = sqlite3_prepare_v2(connection.db_, sql, -1, &stmt_, NULL);
+  int error = sqlite3_prepare_v2(connection.db_, sql, -1, &stmt_, nullptr);
   if (error != SQLITE_OK) {
-    stmt_ = NULL;
+    stmt_ = nullptr;
     throw Exception{sqlite3_errmsg(connection.db_)};
   }
 
@@ -84,8 +82,8 @@ void Statement::Bind(unsigned column, const std::string& value) {
     throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
-void Statement::Bind(unsigned column, const std::wstring& value) {
-  return Bind(column, base::WideToUTF8(value));
+void Statement::Bind(unsigned column, const std::u16string& value) {
+  return Bind(column, base::UTF16ToUTF8(value));
 }
 
 size_t Statement::GetColumnCount() const {
@@ -132,9 +130,9 @@ std::string Statement::GetColumnString(unsigned column) const {
     return std::string();
 }
 
-std::wstring Statement::GetColumnString16(unsigned column) const {
+std::u16string Statement::GetColumnString16(unsigned column) const {
   std::string string = GetColumnString(column);
-  return string.empty() ? std::wstring() : base::UTF8ToWide(string);
+  return string.empty() ? std::u16string() : base::UTF8ToUTF16(string);
 }
 
 void Statement::Run() {
@@ -163,7 +161,7 @@ void Statement::Reset() {
 void Statement::Close() {
   if (stmt_) {
     sqlite3_finalize(stmt_);
-    stmt_ = NULL;
+    stmt_ = nullptr;
   }
 }
 

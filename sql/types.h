@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 namespace sql {
 
@@ -13,6 +14,7 @@ enum ColumnType {
 };
 
 struct OpenParams {
+  std::string driver;
   std::filesystem::path path;
   bool exclusive_locking = false;
   bool multithreaded = false;

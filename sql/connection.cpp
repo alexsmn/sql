@@ -1,7 +1,11 @@
 #include "sql/connection.h"
 
+#include "sql/postgresql/connection.h"
+#include "sql/postgresql/statement.h"
 #include "sql/sqlite3/connection.h"
 #include "sql/sqlite3/statement.h"
+
+#include <cassert>
 
 namespace sql {
 
@@ -46,7 +50,7 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
       const char* sql) override {
     StatementType statement;
     statement.Init(connection_, sql);
-    return std::make_unique<StatementModelImpl<sqlite3::Statement>>(
+    return std::make_unique<StatementModelImpl<StatementType>>(
         std::move(statement));
   }
 
@@ -54,10 +58,10 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
   ConnectionType connection_;
 };
 
-template <class ConnectionType>
+template <class StatementType>
 class Connection::StatementModelImpl : public StatementModel {
  public:
-  explicit StatementModelImpl(ConnectionType&& statement)
+  explicit StatementModelImpl(StatementType&& statement)
       : statement_{std::move(statement)} {}
 
   virtual bool IsInitialized() const override {
@@ -122,11 +126,23 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual void Close() override { statement_.Close(); }
 
  private:
-  ConnectionType statement_;
+  StatementType statement_;
 };
 
-Connection::Connection()
-    : model_{std::make_unique<
-          ConnectionModelImpl<sqlite3::Connection, sqlite3::Statement>>()} {}
+void Connection::Open(const OpenParams& params) {
+  assert(!model_);
+
+  if (params.driver.empty() || params.driver == "sqlite3") {
+    model_ = std::make_unique<
+        ConnectionModelImpl<sqlite3::Connection, sqlite3::Statement>>();
+  } else if (params.driver == "postgresql") {
+    model_ = std::make_unique<
+        ConnectionModelImpl<postgresql::Connection, postgresql::Statement>>();
+  } else {
+    throw std::runtime_error{"Unknown SQL driver"};
+  }
+
+  model_->Open(params);
+}
 
 }  // namespace sql
