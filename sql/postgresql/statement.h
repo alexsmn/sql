@@ -2,9 +2,10 @@
 
 #include "sql/types.h"
 
+#include <libpq-fe.h>
+#include <libpq/libpq-fs.h>
 #include <string>
-
-struct sqlite3_stmt;
+#include <vector>
 
 namespace sql::postgresql {
 
@@ -18,21 +19,17 @@ class Statement {
   Statement(const Statement&) = delete;
   Statement& operator=(const Statement&) = delete;
 
-  Statement(Statement&& source) noexcept;
-  Statement& operator=(Statement&& source) noexcept;
+  bool IsInitialized() const { return !name_.empty(); };
 
-  bool IsInitialized() const { return !!stmt_; };
-
-  void Init(Connection& connection, const char* sql);
+  void Init(Connection& connection, std::string_view sql);
 
   void BindNull(unsigned column);
   void Bind(unsigned column, bool value);
   void Bind(unsigned column, int value);
   void Bind(unsigned column, int64_t value);
   void Bind(unsigned column, double value);
-  void Bind(unsigned column, const char* value);
-  void Bind(unsigned column, const std::string& value);
-  void Bind(unsigned column, const std::u16string& value);
+  void Bind(unsigned column, std::string_view value);
+  void Bind(unsigned column, std::u16string_view value);
 
   size_t GetColumnCount() const;
   ColumnType GetColumnType(unsigned column) const;
@@ -51,8 +48,27 @@ class Statement {
   void Close();
 
  private:
+  struct Param {
+    Oid type;
+    std::vector<char> value;
+  };
+
+  Param& GetParam(unsigned column);
+
+  void Prepare();
+  void Execute(bool single_row);
+
   Connection* connection_ = nullptr;
-  ::sqlite3_stmt* stmt_ = nullptr;
+  ::PGconn* conn_ = nullptr;
+  ::PGresult* result_ = nullptr;
+
+  std::string name_;
+  std::string sql_;
+
+  std::vector<Param> params_;
+
+  bool prepared_ = false;
+  bool executed_ = false;
 };
 
 }  // namespace sql::postgresql

@@ -1,7 +1,10 @@
 #pragma once
 
+#include "sql/types.h"
+
 #include <memory>
 #include <string>
+#include <vector>
 
 struct sqlite3;
 
@@ -24,7 +27,7 @@ class Connection {
   void Open(const OpenParams& params);
   void Close();
 
-  void Execute(const char* sql);
+  void Execute(std::string_view sql);
 
   void BeginTransaction();
   void CommitTransaction();
@@ -32,9 +35,13 @@ class Connection {
 
   int GetLastChangeCount() const;
 
-  bool DoesTableExist(const char* table_name) const;
-  bool DoesColumnExist(const char* table_name, const char* column_name) const;
-  bool DoesIndexExist(const char* table_name, const char* index_name) const;
+  bool DoesTableExist(std::string_view table_name) const;
+  bool DoesColumnExist(std::string_view table_name,
+                       std::string_view column_name) const;
+  bool DoesIndexExist(std::string_view table_name,
+                      std::string_view index_name) const;
+
+  std::vector<Column> GetTableColumns(std::string_view table_name) const;
 
  private:
   ::sqlite3* db_ = nullptr;

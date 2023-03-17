@@ -1,6 +1,7 @@
 #include "sql/sqlite3/connection.h"
 
 #include "sql/exception.h"
+#include "sql/sqlite3/sqlite_util.h"
 #include "sql/sqlite3/statement.h"
 
 #include <cassert>
@@ -55,13 +56,14 @@ void Connection::Close() {
   }
 }
 
-void Connection::Execute(const char* sql) {
+void Connection::Execute(std::string_view sql) {
   assert(db_);
-  if (sqlite3_exec(db_, sql, NULL, NULL, NULL) != SQLITE_OK)
+  if (sqlite3_exec(db_, std::string{sql}.c_str(), NULL, NULL, NULL) !=
+      SQLITE_OK)
     throw Exception{sqlite3_errmsg(db_)};
 }
 
-bool Connection::DoesTableExist(const char* table_name) const {
+bool Connection::DoesTableExist(std::string_view table_name) const {
   if (!does_table_exist_statement_.get()) {
     does_table_exist_statement_.reset(new Statement());
     does_table_exist_statement_->Init(*const_cast<Connection*>(this),
@@ -79,8 +81,8 @@ bool Connection::DoesTableExist(const char* table_name) const {
   return exists;
 }
 
-bool Connection::DoesColumnExist(const char* table_name,
-                                 const char* column_name) const {
+bool Connection::DoesColumnExist(std::string_view table_name,
+                                 std::string_view column_name) const {
   if (does_column_exist_table_name_ != table_name) {
     std::string sql = "PRAGMA TABLE_INFO(";
     sql += table_name;
@@ -106,8 +108,8 @@ bool Connection::DoesColumnExist(const char* table_name,
   return exists;
 }
 
-bool Connection::DoesIndexExist(const char* table_name,
-                                const char* index_name) const {
+bool Connection::DoesIndexExist(std::string_view table_name,
+                                std::string_view index_name) const {
   if (does_index_exist_table_name_ != table_name) {
     std::string sql = "PRAGMA INDEX_LIST(";
     sql += table_name;
@@ -166,6 +168,26 @@ void Connection::RollbackTransaction() {
 int Connection::GetLastChangeCount() const {
   assert(db_);
   return sqlite3_changes(db_);
+}
+
+std::vector<Column> Connection::GetTableColumns(
+    std::string_view table_name) const {
+  std::vector<Column> columns;
+
+  const std::string sql = std::format("PRAGMA TABLE_INFO({})", table_name);
+
+  Statement statement;
+  statement.Init(*const_cast<Connection*>(this), sql.c_str());
+
+  while (statement.Step()) {
+    const auto& field_name = statement.GetColumnString(1);
+    const auto& field_type = statement.GetColumnString(2);
+    const auto data_type = ParseSqliteColumnType(field_type);
+    assert(data_type != COLUMN_TYPE_NULL);
+    columns.emplace_back(Column{field_name, data_type});
+  }
+
+  return columns;
 }
 
 }  // namespace sql::sqlite3

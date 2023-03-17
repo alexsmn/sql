@@ -15,26 +15,11 @@ Statement::~Statement() {
   Close();
 }
 
-Statement::Statement(Statement&& source)
-    : connection_{source.connection_}, stmt_{source.stmt_} {
-  source.connection_ = nullptr;
-  source.stmt_ = nullptr;
-}
-
-Statement& Statement::operator=(Statement&& source) {
-  if (this != &source) {
-    connection_ = source.connection_;
-    stmt_ = source.stmt_;
-    source.connection_ = nullptr;
-    source.stmt_ = nullptr;
-  }
-  return *this;
-}
-
-void Statement::Init(Connection& connection, const char* sql) {
+void Statement::Init(Connection& connection, std::string_view sql) {
   assert(connection.db_);
 
-  int error = sqlite3_prepare_v2(connection.db_, sql, -1, &stmt_, NULL);
+  int error = sqlite3_prepare_v2(connection.db_, sql.data(),
+                                 static_cast<int>(sql.size()), &stmt_, NULL);
   if (error != SQLITE_OK) {
     stmt_ = NULL;
     throw Exception{sqlite3_errmsg(connection.db_)};
@@ -70,22 +55,17 @@ void Statement::Bind(unsigned column, double value) {
     throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
-void Statement::Bind(unsigned column, const char* value) {
+void Statement::Bind(unsigned column, std::string_view value) {
   assert(stmt_);
-  if (sqlite3_bind_text(stmt_, column + 1, value, -1, SQLITE_TRANSIENT) !=
-      SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
-}
-
-void Statement::Bind(unsigned column, const std::string& value) {
-  assert(stmt_);
-  if (sqlite3_bind_text(stmt_, column + 1, value.data(), value.length(),
+  if (sqlite3_bind_text(stmt_, column + 1, value.data(),
+                        static_cast<int>(value.size()),
                         SQLITE_TRANSIENT) != SQLITE_OK)
     throw Exception{sqlite3_errmsg(connection_->db_)};
 }
 
-void Statement::Bind(unsigned column, const std::u16string& value) {
-  return Bind(column, boost::locale::conv::utf_to_utf<char>(value));
+void Statement::Bind(unsigned column, std::u16string_view value) {
+  return Bind(column, boost::locale::conv::utf_to_utf<char>(
+                          value.data(), value.data() + value.size()));
 }
 
 size_t Statement::GetColumnCount() const {

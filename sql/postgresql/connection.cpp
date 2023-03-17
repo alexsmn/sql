@@ -1,11 +1,14 @@
 #include "sql/postgresql/connection.h"
 
 #include "sql/exception.h"
+#include "sql/postgresql/postgres_util.h"
 #include "sql/postgresql/statement.h"
 
+#include <boost/algorithm/string.hpp>
 #include <cassert>
 #include <format>
-#include <sqlite3.h>
+#include <libpq-fe.h>
+#include <libpq/libpq-fs.h>
 
 namespace sql::postgresql {
 
@@ -14,22 +17,16 @@ Connection::~Connection() {
 }
 
 void Connection::Open(const OpenParams& params) {
-  assert(!db_);
+  assert(!conn_);
 
-  int error = sqlite3_open16(params.path.u16string().c_str(), &db_);
-  if (error != SQLITE_OK) {
-    db_ = NULL;
-    throw Exception{"Open error"};
+  PGconn* conn = PQconnectdb(params.connection_string.c_str());
+  if (conn == nullptr || PQstatus(conn) != CONNECTION_OK) {
+    std::string message = PQerrorMessage(conn);
+    PQfinish(conn);
+    throw Exception{message};
   }
 
-  if (params.exclusive_locking)
-    Execute("PRAGMA locking_mode=EXCLUSIVE");
-
-  if (params.journal_size_limit != -1) {
-    Execute(
-        std::format("PRAGMA journal_size_limit={}", params.journal_size_limit)
-            .c_str());
-  }
+  conn_ = conn;
 }
 
 void Connection::Close() {
@@ -40,25 +37,23 @@ void Connection::Close() {
   does_column_exist_statement_.reset();
   does_index_exist_statement_.reset();
 
-  if (db_) {
-    if (sqlite3_close(db_) != SQLITE_OK)
-      throw Exception{sqlite3_errmsg(db_)};
-    db_ = NULL;
+  if (conn_) {
+    PQfinish(conn_);
+    conn_ = nullptr;
   }
 }
 
-void Connection::Execute(const char* sql) {
-  assert(db_);
-  if (sqlite3_exec(db_, sql, NULL, NULL, NULL) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(db_)};
+void Connection::Execute(std::string_view sql) {
+  CheckPostgresResult(PQexec(conn_, std::string{sql}.c_str()));
 }
 
-bool Connection::DoesTableExist(const char* table_name) const {
+bool Connection::DoesTableExist(std::string_view table_name) const {
   if (!does_table_exist_statement_.get()) {
     does_table_exist_statement_.reset(new Statement());
     does_table_exist_statement_->Init(*const_cast<Connection*>(this),
-                                      "SELECT name FROM sqlite_master "
-                                      "WHERE type='table' AND name=?");
+                                      "SELECT FROM information_schema.tables "
+                                      "WHERE table_schema='public' AND "
+                                      "table_name=$1");
   }
 
   does_table_exist_statement_->Bind(0, table_name);
@@ -71,35 +66,34 @@ bool Connection::DoesTableExist(const char* table_name) const {
   return exists;
 }
 
-bool Connection::DoesColumnExist(const char* table_name,
-                                 const char* column_name) const {
-  if (does_column_exist_table_name_ != table_name) {
-    std::string sql = "PRAGMA TABLE_INFO(";
-    sql += table_name;
-    sql += ")";
+bool Connection::DoesColumnExist(std::string_view table_name,
+                                 std::string_view column_name) const {
+  if (!does_column_exist_statement_) {
+    std::string sql =
+        "SELECT FROM information_schema.columns WHERE table_schema='public' "
+        "AND table_name=$1 AND column_name=$2";
 
-    does_column_exist_table_name_ = table_name;
-    does_column_exist_statement_.reset(new Statement());
+    does_column_exist_statement_ = std::make_unique<Statement>();
     does_column_exist_statement_->Init(*const_cast<Connection*>(this),
                                        sql.c_str());
   }
 
-  bool exists = false;
-  while (does_table_exist_statement_->Step()) {
-    if (does_column_exist_statement_->GetColumnString(1).compare(column_name) ==
-        0) {
-      exists = true;
-      break;
-    }
-  }
+  does_column_exist_statement_->Bind(0, table_name);
 
-  does_table_exist_statement_->Reset();
+  // |boost::algorithm::to_lower_copy| doesn't work with std::string_view.
+  std::string lower_column_name{column_name};
+  boost::algorithm::to_lower(lower_column_name);
+  does_column_exist_statement_->Bind(1, lower_column_name);
+
+  bool exists = does_column_exist_statement_->Step();
+
+  does_column_exist_statement_->Reset();
 
   return exists;
 }
 
-bool Connection::DoesIndexExist(const char* table_name,
-                                const char* index_name) const {
+bool Connection::DoesIndexExist(std::string_view table_name,
+                                std::string_view index_name) const {
   if (does_index_exist_table_name_ != table_name) {
     std::string sql = "PRAGMA INDEX_LIST(";
     sql += table_name;
@@ -156,8 +150,39 @@ void Connection::RollbackTransaction() {
 }
 
 int Connection::GetLastChangeCount() const {
-  assert(db_);
-  return sqlite3_changes(db_);
+  assert(false);
+  return 0;
+}
+
+std::string Connection::GenerateStatementName() {
+  auto statement_id = next_statement_id_++;
+  return std::format("stmt_{}", statement_id);
+}
+
+std::vector<Column> Connection::GetTableColumns(
+    std::string_view table_name) const {
+  if (!table_columns_statement_) {
+    table_columns_statement_ = std::make_unique<Statement>();
+    table_columns_statement_->Init(
+        *const_cast<Connection*>(this),
+        "SELECT column_name, data_type FROM information_schema.columns "
+        "WHERE table_schema='public' AND table_name=$1");
+  }
+
+  table_columns_statement_->Bind(0, table_name);
+
+  std::vector<Column> columns;
+
+  while (table_columns_statement_->Step()) {
+    auto column_name = table_columns_statement_->GetColumnString(0);
+    auto column_data_type =
+        ParsePostgresColumnType(table_columns_statement_->GetColumnString(1));
+    // TODO: Handle properly.
+    assert(column_data_type != COLUMN_TYPE_NULL);
+    columns.emplace_back(std::move(column_name), column_data_type);
+  }
+
+  return columns;
 }
 
 }  // namespace sql::postgresql

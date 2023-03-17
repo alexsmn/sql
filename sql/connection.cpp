@@ -18,7 +18,9 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
 
   virtual void Close() override { connection_.Close(); }
 
-  virtual void Execute(const char* sql) override { connection_.Execute(sql); }
+  virtual void Execute(std::string_view sql) override {
+    connection_.Execute(sql);
+  }
 
   virtual void BeginTransaction() override { connection_.BeginTransaction(); }
 
@@ -32,26 +34,30 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
     return connection_.GetLastChangeCount();
   }
 
-  virtual bool DoesTableExist(const char* table_name) const override {
+  virtual bool DoesTableExist(std::string_view table_name) const override {
     return connection_.DoesTableExist(table_name);
   }
 
-  virtual bool DoesColumnExist(const char* table_name,
-                               const char* column_name) const override {
+  virtual bool DoesColumnExist(std::string_view table_name,
+                               std::string_view column_name) const override {
     return connection_.DoesColumnExist(table_name, column_name);
   }
 
-  virtual bool DoesIndexExist(const char* table_name,
-                              const char* index_name) const override {
+  virtual bool DoesIndexExist(std::string_view table_name,
+                              std::string_view index_name) const override {
     return connection_.DoesIndexExist(table_name, index_name);
   }
 
+  virtual std::vector<Column> GetTableColumns(
+      std::string_view table_name) const override {
+    return connection_.GetTableColumns(table_name);
+  }
+
   virtual std::unique_ptr<StatementModel> CreateStatementModel(
-      const char* sql) override {
-    StatementType statement;
-    statement.Init(connection_, sql);
-    return std::make_unique<StatementModelImpl<StatementType>>(
-        std::move(statement));
+      std::string_view sql) override {
+    auto model = std::make_unique<StatementModelImpl<StatementType>>();
+    model->statement().Init(connection_, sql);
+    return model;
   }
 
  private:
@@ -61,8 +67,9 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
 template <class StatementType>
 class Connection::StatementModelImpl : public StatementModel {
  public:
-  explicit StatementModelImpl(StatementType&& statement)
-      : statement_{std::move(statement)} {}
+  StatementModelImpl() = default;
+
+  StatementType& statement() { return statement_; }
 
   virtual bool IsInitialized() const override {
     return statement_.IsInitialized();
@@ -83,13 +90,10 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual void Bind(unsigned column, double value) override {
     statement_.Bind(column, value);
   }
-  virtual void Bind(unsigned column, const char* value) override {
+  virtual void Bind(unsigned column, std::string_view value) override {
     statement_.Bind(column, value);
   }
-  virtual void Bind(unsigned column, const std::string& value) override {
-    statement_.Bind(column, value);
-  }
-  virtual void Bind(unsigned column, const std::u16string& value) override {
+  virtual void Bind(unsigned column, std::u16string_view value) override {
     statement_.Bind(column, value);
   }
 
@@ -136,7 +140,7 @@ void Connection::Open(const OpenParams& params) {
       params.driver == "sqlite3") {
     model_ = std::make_unique<
         ConnectionModelImpl<sqlite3::Connection, sqlite3::Statement>>();
-  } else if (params.driver == "postgresql") {
+  } else if (params.driver == "postgres" || params.driver == "postgresql") {
     model_ = std::make_unique<
         ConnectionModelImpl<postgresql::Connection, postgresql::Statement>>();
   } else {

@@ -16,9 +16,15 @@ enum ColumnType {
 struct OpenParams {
   std::string driver;
   std::filesystem::path path;
+  std::string connection_string;
   bool exclusive_locking = false;
   bool multithreaded = false;
   int journal_size_limit = -1;
+};
+
+struct Column {
+  std::string name;
+  ColumnType type;
 };
 
 }  // namespace sql

@@ -3,6 +3,7 @@
 #include "sql/types.h"
 
 #include <filesystem>
+#include <vector>
 
 namespace sql {
 
@@ -18,7 +19,7 @@ class Connection {
   void Open(const OpenParams& params);
   void Close() { model_->Close(); }
 
-  void Execute(const char* sql) { model_->Execute(sql); }
+  void Execute(std::string_view sql) { model_->Execute(sql); }
 
   void BeginTransaction() { model_->BeginTransaction(); }
   void CommitTransaction() { model_->CommitTransaction(); }
@@ -26,14 +27,20 @@ class Connection {
 
   int GetLastChangeCount() const { return model_->GetLastChangeCount(); }
 
-  bool DoesTableExist(const char* table_name) const {
+  bool DoesTableExist(std::string_view table_name) const {
     return model_->DoesTableExist(table_name);
   }
-  bool DoesColumnExist(const char* table_name, const char* column_name) const {
+  bool DoesColumnExist(std::string_view table_name,
+                       std::string_view column_name) const {
     return model_->DoesColumnExist(table_name, column_name);
   }
-  bool DoesIndexExist(const char* table_name, const char* index_name) const {
+  bool DoesIndexExist(std::string_view table_name,
+                      std::string_view index_name) const {
     return model_->DoesIndexExist(table_name, index_name);
+  }
+
+  std::vector<Column> GetTableColumns(std::string_view table_name) const {
+    return model_->GetTableColumns(std::string{table_name}.c_str());
   }
 
  private:
@@ -48,9 +55,8 @@ class Connection {
     virtual void Bind(unsigned column, int value) = 0;
     virtual void Bind(unsigned column, int64_t value) = 0;
     virtual void Bind(unsigned column, double value) = 0;
-    virtual void Bind(unsigned column, const char* value) = 0;
-    virtual void Bind(unsigned column, const std::string& value) = 0;
-    virtual void Bind(unsigned column, const std::u16string& value) = 0;
+    virtual void Bind(unsigned column, std::string_view value) = 0;
+    virtual void Bind(unsigned column, std::u16string_view value) = 0;
 
     virtual size_t GetColumnCount() const = 0;
     virtual ColumnType GetColumnType(unsigned column) const = 0;
@@ -76,7 +82,7 @@ class Connection {
     virtual void Open(const OpenParams& params) = 0;
     virtual void Close() = 0;
 
-    virtual void Execute(const char* sql) = 0;
+    virtual void Execute(std::string_view sql) = 0;
 
     virtual void BeginTransaction() = 0;
     virtual void CommitTransaction() = 0;
@@ -84,14 +90,17 @@ class Connection {
 
     virtual int GetLastChangeCount() const = 0;
 
-    virtual bool DoesTableExist(const char* table_name) const = 0;
-    virtual bool DoesColumnExist(const char* table_name,
-                                 const char* column_name) const = 0;
-    virtual bool DoesIndexExist(const char* table_name,
-                                const char* index_name) const = 0;
+    virtual bool DoesTableExist(std::string_view table_name) const = 0;
+    virtual bool DoesColumnExist(std::string_view table_name,
+                                 std::string_view column_name) const = 0;
+    virtual bool DoesIndexExist(std::string_view table_name,
+                                std::string_view index_name) const = 0;
+
+    virtual std::vector<Column> GetTableColumns(
+        std::string_view table_name) const = 0;
 
     virtual std::unique_ptr<StatementModel> CreateStatementModel(
-        const char* sql) = 0;
+        std::string_view sql) = 0;
   };
 
   std::unique_ptr<ConnectionModel> model_;

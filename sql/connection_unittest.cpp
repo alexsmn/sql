@@ -8,7 +8,7 @@ using namespace testing;
 
 namespace sql {
 
-class ConnectionTest : public TestWithParam<std::string> {
+class ConnectionTest : public TestWithParam<OpenParams> {
  public:
   virtual void TearDown() override;
 
@@ -19,7 +19,14 @@ class ConnectionTest : public TestWithParam<std::string> {
   std::filesystem::path temp_dir_;
 };
 
-INSTANTIATE_TEST_CASE_P(ConnectionTests, ConnectionTest, Values("sqlite"));
+INSTANTIATE_TEST_SUITE_P(
+    ConnectionTests,
+    ConnectionTest,
+    Values(OpenParams{.driver = "sqlite"},
+           OpenParams{
+               .driver = "postgres",
+               .connection_string = "host=localhost port=5433 dbname=test "
+                                    "user=postgres password=1234"}));
 
 void ConnectionTest::TearDown() {
   statement_.Close();
@@ -33,11 +40,40 @@ void ConnectionTest::TearDown() {
 TEST_P(ConnectionTest, Test) {
   temp_dir_ = std::filesystem::temp_directory_path() / "sql";
 
-  connection_.Open({.driver = GetParam(), .path = temp_dir_});
+  auto open_params = GetParam();
+  open_params.path = temp_dir_;
+  connection_.Open(open_params);
+
+  if (connection_.DoesTableExist("test")) {
+    connection_.Execute("DROP TABLE test");
+  }
 
   connection_.Execute("CREATE TABLE test(A INTEGER, B INTEGER)");
 
+  EXPECT_TRUE(connection_.DoesTableExist("test"));
+  EXPECT_TRUE(connection_.DoesColumnExist("test", "A"));
+  EXPECT_TRUE(connection_.DoesColumnExist("test", "B"));
+
+  Statement insert_statement;
+  insert_statement.Init(connection_, "INSERT INTO test VALUES($1, $2)");
+  for (int i = 1; i <= 3; ++i) {
+    insert_statement.Bind(0, i * 10);
+    insert_statement.Bind(1, i * 100);
+    insert_statement.Run();
+  }
+
+  std::vector<std::pair<int, int>> values;
   statement_.Init(connection_, "SELECT * FROM test");
+  while (statement_.Step()) {
+    int a = statement_.GetColumnInt(0);
+    int b = statement_.GetColumnInt(1);
+    values.emplace_back(a, b);
+  }
+
+  EXPECT_THAT(values, ElementsAre(FieldsAre(10, 100), FieldsAre(20, 200),
+                                  FieldsAre(30, 300)));
+
+  connection_.Execute("DROP TABLE test");
 }
 
 }  // namespace sql

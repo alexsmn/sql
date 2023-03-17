@@ -1,15 +1,20 @@
 #pragma once
 
+#include "sql/types.h"
+
 #include <memory>
 #include <string>
+#include <vector>
 
-struct sqlite3;
+typedef struct pg_conn PGconn;
 
 namespace sql {
 struct OpenParams;
 }
 
 namespace sql::postgresql {
+
+// TODO: std code standard.
 
 class Statement;
 
@@ -24,7 +29,7 @@ class Connection {
   void Open(const OpenParams& params);
   void Close();
 
-  void Execute(const char* sql);
+  void Execute(std::string_view sql);
 
   void BeginTransaction();
   void CommitTransaction();
@@ -32,22 +37,32 @@ class Connection {
 
   int GetLastChangeCount() const;
 
-  bool DoesTableExist(const char* table_name) const;
-  bool DoesColumnExist(const char* table_name, const char* column_name) const;
-  bool DoesIndexExist(const char* table_name, const char* index_name) const;
+  // TODO: string_view
+
+  bool DoesTableExist(std::string_view table_name) const;
+  bool DoesColumnExist(std::string_view table_name,
+                       std::string_view column_name) const;
+  bool DoesIndexExist(std::string_view table_name,
+                      std::string_view index_name) const;
+
+  std::vector<Column> GetTableColumns(std::string_view table_name) const;
 
  private:
-  ::sqlite3* db_ = nullptr;
+  std::string GenerateStatementName();
+
+  ::PGconn* conn_ = nullptr;
 
   mutable std::unique_ptr<Statement> begin_transaction_statement_;
   mutable std::unique_ptr<Statement> commit_transaction_statement_;
   mutable std::unique_ptr<Statement> rollback_transaction_statement_;
 
+  mutable std::unique_ptr<Statement> table_columns_statement_;
   mutable std::unique_ptr<Statement> does_table_exist_statement_;
   mutable std::unique_ptr<Statement> does_column_exist_statement_;
   mutable std::unique_ptr<Statement> does_index_exist_statement_;
-  mutable std::string does_column_exist_table_name_;
   mutable std::string does_index_exist_table_name_;
+
+  std::atomic<int> next_statement_id_ = 0;
 
   friend class Statement;
 };
