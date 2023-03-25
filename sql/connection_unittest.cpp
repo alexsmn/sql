@@ -70,11 +70,12 @@ TEST_P(ConnectionTest, Test) {
                            FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER)));
 
   Statement insert_statement;
-  insert_statement.Init(connection_, "INSERT INTO test VALUES($1, $2)");
+  insert_statement.Init(connection_, "INSERT INTO test VALUES(?, ?)");
   for (int i = 1; i <= 3; ++i) {
     insert_statement.Bind(0, i * 10);
     insert_statement.Bind(1, i * 100);
     insert_statement.Run();
+    insert_statement.Reset();
   }
 
   std::vector<std::pair<int, int>> values;

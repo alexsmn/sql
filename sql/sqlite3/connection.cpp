@@ -27,7 +27,7 @@ void Connection::Open(const OpenParams& params) {
       reinterpret_cast<const char*>(params.path.u8string().c_str()), &db_,
       flags, nullptr);
   if (error != SQLITE_OK) {
-    db_ = NULL;
+    db_ = nullptr;
     throw Exception{"Open error"};
   }
 
@@ -36,8 +36,7 @@ void Connection::Open(const OpenParams& params) {
 
   if (params.journal_size_limit != -1) {
     Execute(
-        std::format("PRAGMA journal_size_limit={}", params.journal_size_limit)
-            .c_str());
+        std::format("PRAGMA journal_size_limit={}", params.journal_size_limit));
   }
 }
 
@@ -52,13 +51,13 @@ void Connection::Close() {
   if (db_) {
     if (sqlite3_close(db_) != SQLITE_OK)
       throw Exception{sqlite3_errmsg(db_)};
-    db_ = NULL;
+    db_ = nullptr;
   }
 }
 
 void Connection::Execute(std::string_view sql) {
   assert(db_);
-  if (sqlite3_exec(db_, std::string{sql}.c_str(), NULL, NULL, NULL) !=
+  if (sqlite3_exec(db_, std::string{sql}.c_str(), nullptr, nullptr, nullptr) !=
       SQLITE_OK)
     throw Exception{sqlite3_errmsg(db_)};
 }
@@ -84,14 +83,11 @@ bool Connection::DoesTableExist(std::string_view table_name) const {
 bool Connection::DoesColumnExist(std::string_view table_name,
                                  std::string_view column_name) const {
   if (does_column_exist_table_name_ != table_name) {
-    std::string sql = "PRAGMA TABLE_INFO(";
-    sql += table_name;
-    sql += ")";
-
     does_column_exist_table_name_ = table_name;
     does_column_exist_statement_.reset(new Statement());
-    does_column_exist_statement_->Init(*const_cast<Connection*>(this),
-                                       sql.c_str());
+    does_column_exist_statement_->Init(
+        *const_cast<Connection*>(this),
+        std::format("PRAGMA TABLE_INFO({})", table_name));
   }
 
   bool exists = false;
@@ -111,14 +107,11 @@ bool Connection::DoesColumnExist(std::string_view table_name,
 bool Connection::DoesIndexExist(std::string_view table_name,
                                 std::string_view index_name) const {
   if (does_index_exist_table_name_ != table_name) {
-    std::string sql = "PRAGMA INDEX_LIST(";
-    sql += table_name;
-    sql += ")";
-
     does_index_exist_table_name_ = table_name;
     does_index_exist_statement_.reset(new Statement());
-    does_index_exist_statement_->Init(*const_cast<Connection*>(this),
-                                      sql.c_str());
+    does_index_exist_statement_->Init(
+        *const_cast<Connection*>(this),
+        std::format("PRAGMA INDEX_LIST({})", table_name));
   }
 
   bool exists = false;
@@ -174,10 +167,9 @@ std::vector<Column> Connection::GetTableColumns(
     std::string_view table_name) const {
   std::vector<Column> columns;
 
-  const std::string sql = std::format("PRAGMA TABLE_INFO({})", table_name);
-
   Statement statement;
-  statement.Init(*const_cast<Connection*>(this), sql.c_str());
+  statement.Init(*const_cast<Connection*>(this),
+                 std::format("PRAGMA TABLE_INFO({})", table_name));
 
   while (statement.Step()) {
     const auto& field_name = statement.GetColumnString(1);

@@ -4,6 +4,7 @@
 #include "sql/postgresql/connection.h"
 #include "sql/postgresql/postgres_util.h"
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/container/static_vector.hpp>
 #include <boost/endian/conversion.hpp>
 #include <boost/locale/encoding_utf.hpp>
@@ -35,6 +36,19 @@ void SetBuffer(std::vector<char>& buffer, const T& value) {
   memcpy(buffer.data(), &value, sizeof(T));
 }
 
+void ReplacePostgresParameters(std::string& sql) {
+  size_t pos = 0;
+  for (int index = 1;;++index) {
+    auto q = sql.find('?', pos);
+    if (q == sql.npos) {
+      break;
+    }
+    auto param = std::format("${}", index);
+    sql.replace(q, 1, param);
+    pos = q + param.size();
+  }
+}
+
 }  // namespace
 
 Statement::~Statement() {
@@ -48,6 +62,8 @@ void Statement::Init(Connection& connection, std::string_view sql) {
   conn_ = connection.conn_;
   name_ = connection.GenerateStatementName();
   sql_ = sql;
+
+  ReplacePostgresParameters(sql_);
 }
 
 void Statement::BindNull(unsigned column) {
@@ -55,8 +71,7 @@ void Statement::BindNull(unsigned column) {
 }
 
 void Statement::Bind(unsigned column, bool value) {
-  // TODO: Implement.
-  assert(false);
+  Bind(column, value ? 1 : 0);
 }
 
 void Statement::Bind(unsigned column, int value) {
@@ -96,9 +111,7 @@ ColumnType Statement::GetColumnType(unsigned column) const {
 }
 
 bool Statement::GetColumnBool(unsigned column) const {
-  // TODO: Implement.
-  assert(false);
-  return false;
+  return GetColumnInt(column) != 0;
 }
 
 int Statement::GetColumnInt(unsigned column) const {
@@ -130,7 +143,6 @@ void Statement::Run() {
 
   Prepare();
   Execute(false);
-  Reset();
 }
 
 bool Statement::Step() {

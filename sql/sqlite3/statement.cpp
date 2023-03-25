@@ -9,6 +9,18 @@
 
 namespace sql::sqlite3 {
 
+namespace {
+
+void CheckSqliteResult(::sqlite3* db, int result) {
+  assert(db != nullptr);
+  if (result != SQLITE_OK) {
+    const char* message = sqlite3_errmsg(db);
+    throw Exception{message};
+  }
+}
+
+}  // namespace
+
 Statement::Statement() {}
 
 Statement::~Statement() {
@@ -22,15 +34,16 @@ void Statement::Init(Connection& connection, std::string_view sql) {
                                  static_cast<int>(sql.size()), &stmt_, NULL);
   if (error != SQLITE_OK) {
     stmt_ = NULL;
-    throw Exception{sqlite3_errmsg(connection.db_)};
+    const char* message = sqlite3_errmsg(connection.db_);
+    throw Exception{message};
   }
 
   connection_ = &connection;
 }
 
 void Statement::BindNull(unsigned column) {
-  if (sqlite3_bind_null(stmt_, column + 1) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  assert(stmt_);
+  CheckSqliteResult(connection_->db_, sqlite3_bind_null(stmt_, column + 1));
 }
 
 void Statement::Bind(unsigned column, bool value) {
@@ -39,33 +52,33 @@ void Statement::Bind(unsigned column, bool value) {
 
 void Statement::Bind(unsigned column, int value) {
   assert(stmt_);
-  if (sqlite3_bind_int(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  CheckSqliteResult(connection_->db_,
+                    sqlite3_bind_int(stmt_, column + 1, value));
 }
 
 void Statement::Bind(unsigned column, int64_t value) {
   assert(stmt_);
-  if (sqlite3_bind_int64(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  CheckSqliteResult(connection_->db_,
+                    sqlite3_bind_int64(stmt_, column + 1, value));
 }
 
 void Statement::Bind(unsigned column, double value) {
   assert(stmt_);
-  if (sqlite3_bind_double(stmt_, column + 1, value) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  CheckSqliteResult(connection_->db_,
+                    sqlite3_bind_double(stmt_, column + 1, value));
 }
 
 void Statement::Bind(unsigned column, std::string_view value) {
   assert(stmt_);
-  if (sqlite3_bind_text(stmt_, column + 1, value.data(),
-                        static_cast<int>(value.size()),
-                        SQLITE_TRANSIENT) != SQLITE_OK)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  CheckSqliteResult(
+      connection_->db_,
+      sqlite3_bind_text(stmt_, column + 1, value.data(),
+                        static_cast<int>(value.size()), SQLITE_TRANSIENT));
 }
 
 void Statement::Bind(unsigned column, std::u16string_view value) {
-  return Bind(column, boost::locale::conv::utf_to_utf<char>(
-                          value.data(), value.data() + value.size()));
+  Bind(column, boost::locale::conv::utf_to_utf<char>(
+                   value.data(), value.data() + value.size()));
 }
 
 size_t Statement::GetColumnCount() const {
@@ -121,8 +134,10 @@ std::u16string Statement::GetColumnString16(unsigned column) const {
 void Statement::Run() {
   assert(stmt_);
   int result = sqlite3_step(stmt_);
-  if (result != SQLITE_DONE)
-    throw Exception{sqlite3_errmsg(connection_->db_)};
+  if (result != SQLITE_DONE) {
+    const char* message = sqlite3_errmsg(connection_->db_);
+    throw Exception{message};
+  }
 }
 
 bool Statement::Step() {
@@ -132,7 +147,8 @@ bool Statement::Step() {
     return true;
   if (result == SQLITE_DONE)
     return false;
-  throw Exception{sqlite3_errmsg(connection_->db_)};
+  const char* message = sqlite3_errmsg(connection_->db_);
+  throw Exception{message};
 }
 
 void Statement::Reset() {
