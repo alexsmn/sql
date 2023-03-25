@@ -91,7 +91,7 @@ bool Connection::DoesColumnExist(std::string_view table_name,
   }
 
   bool exists = false;
-  while (does_table_exist_statement_->Step()) {
+  while (does_column_exist_statement_->Step()) {
     if (does_column_exist_statement_->GetColumnString(1).compare(column_name) ==
         0) {
       exists = true;
@@ -99,7 +99,7 @@ bool Connection::DoesColumnExist(std::string_view table_name,
     }
   }
 
-  does_table_exist_statement_->Reset();
+  does_column_exist_statement_->Reset();
 
   return exists;
 }

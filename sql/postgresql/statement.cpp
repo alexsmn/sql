@@ -10,7 +10,6 @@
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
 #include <ranges>
-#include <sqlite3.h>
 
 namespace sql::postgresql {
 
