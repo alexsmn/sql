@@ -14,7 +14,6 @@ class ConnectionTest : public TestWithParam<OpenParams> {
 
  protected:
   Connection connection_;
-  Statement statement_;
 
   std::filesystem::path temp_dir_;
 };
@@ -29,7 +28,6 @@ INSTANTIATE_TEST_SUITE_P(
                                     "user=postgres password=1234"}));
 
 void ConnectionTest::TearDown() {
-  statement_.Close();
   connection_.Close();
 
   if (!temp_dir_.empty()) {
@@ -71,12 +69,11 @@ TEST_P(ConnectionTest, Test) {
                            FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER),
                            FieldsAre(StrCaseEq("C"), COLUMN_TYPE_TEXT)));
 
-  Statement insert_statement;
-  insert_statement.Init(connection_, "INSERT INTO test VALUES(?, ?, ?)");
+  Statement insert_statement{connection_, "INSERT INTO test VALUES(?, ?, ?)"};
   for (int i = 1; i <= 3; ++i) {
     insert_statement.Bind(0, i * 10);
     insert_statement.Bind(1, i * 100);
-    insert_statement.Bind(2, std::string{3, static_cast<char>('A' + i)});
+    insert_statement.Bind(2, std::string(3, static_cast<char>('A' + i - 1)));
     insert_statement.Run();
     EXPECT_EQ(1, connection_.GetLastChangeCount());
     insert_statement.Reset();
@@ -89,14 +86,15 @@ TEST_P(ConnectionTest, Test) {
   };
 
   std::vector<Row> rows;
-  statement_.Init(connection_, "SELECT * FROM test");
-  while (statement_.Step()) {
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement_.GetColumnType(0));
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement_.GetColumnType(1));
-    EXPECT_EQ(COLUMN_TYPE_TEXT, statement_.GetColumnType(2));
-    auto a = statement_.GetColumnInt(0);
-    auto b = statement_.GetColumnInt64(1);
-    auto c = statement_.GetColumnString(1);
+
+  Statement statement{connection_, "SELECT * FROM test"};
+  while (statement.Step()) {
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(0));
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(1));
+    EXPECT_EQ(COLUMN_TYPE_TEXT, statement.GetColumnType(2));
+    auto a = statement.GetColumnInt(0);
+    auto b = statement.GetColumnInt64(1);
+    auto c = statement.GetColumnString(2);
     rows.emplace_back(a, b, std::move(c));
   }
 

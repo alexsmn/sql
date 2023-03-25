@@ -1,9 +1,4 @@
-file(GLOB SOURCES CONFIGURE_DEPENDS
-  "*.cpp"
-  "*.h"
-)
-
-add_library(sql_postgresql ${SOURCES})
+sql_library(sql_postgresql)
 
 target_include_directories(sql_postgresql PUBLIC "../..")
 
@@ -14,4 +9,4 @@ find_package(PostgreSQL REQUIRED)
 target_link_libraries(sql_postgresql PUBLIC PostgreSQL::PostgreSQL)
 
 find_package(Boost COMPONENTS locale REQUIRED)
-target_link_libraries(sql_postgresql PUBLIC Boost::locale)
+target_link_libraries(sql_postgresql PUBLIC Boost::boost Boost::locale)
