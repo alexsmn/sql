@@ -10,6 +10,7 @@ macro(sql_library TARGET_NAME)
   endif()
 
   add_library(${TARGET_NAME} ${${TARGET_NAME}_SOURCES})
+  add_library(Sql::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
   if (${TARGET_NAME}_UT_SOURCES)
     add_executable(${TARGET_NAME}_unittests ${${TARGET_NAME}_UT_SOURCES})
