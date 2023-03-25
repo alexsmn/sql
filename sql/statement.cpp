@@ -6,7 +6,7 @@ bool Statement::IsInitialized() const {
   return model_ && model_->IsInitialized();
 };
 
-void Statement::Init(Connection& connection, const char* sql) {
+void Statement::Init(Connection& connection, std::string_view sql) {
   model_ = connection.model_->CreateStatementModel(sql);
 }
 
@@ -30,15 +30,11 @@ void Statement::Bind(unsigned column, double value) {
   model_->Bind(column, value);
 }
 
-void Statement::Bind(unsigned column, const char* value) {
+void Statement::Bind(unsigned column, std::string_view value) {
   model_->Bind(column, value);
 }
 
-void Statement::Bind(unsigned column, const std::string& value) {
-  model_->Bind(column, value);
-}
-
-void Statement::Bind(unsigned column, const std::u16string& value) {
+void Statement::Bind(unsigned column, std::u16string_view value) {
   model_->Bind(column, value);
 }
 

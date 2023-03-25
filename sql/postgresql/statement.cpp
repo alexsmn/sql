@@ -146,7 +146,7 @@ bool Statement::Step() {
 
   result_ = PQgetResult(conn_);
   if (!result_) {
-    throw Exception{"Unexpected null result"};
+    return false;
   }
 
   CheckPostgresResult(result_);

@@ -64,6 +64,11 @@ TEST_P(ConnectionTest, Test) {
   EXPECT_TRUE(connection_.DoesIndexExist("test", "A_Index"));
   EXPECT_FALSE(connection_.DoesIndexExist("test", "B_Index"));
 
+  EXPECT_THAT(
+      connection_.GetTableColumns("test"),
+      UnorderedElementsAre(FieldsAre(StrCaseEq("A"), COLUMN_TYPE_INTEGER),
+                           FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER)));
+
   Statement insert_statement;
   insert_statement.Init(connection_, "INSERT INTO test VALUES($1, $2)");
   for (int i = 1; i <= 3; ++i) {

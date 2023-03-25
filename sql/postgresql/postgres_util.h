@@ -12,13 +12,16 @@ inline void CheckPostgresResult(PGresult* result) {
   ExecStatusType status = PQresultStatus(result);
   if (status != PGRES_EMPTY_QUERY && status != PGRES_COMMAND_OK &&
       status != PGRES_TUPLES_OK && status != PGRES_SINGLE_TUPLE) {
-    throw Exception{PQresultErrorMessage(result)};
+    const char* message = PQresultErrorMessage(result);
+    throw Exception{message};
   }
 }
 
 inline ColumnType ParsePostgresColumnType(std::string_view str) {
   static const std::pair<std::string_view, ColumnType> kNameMapping[] = {
-      {"int", ColumnType::COLUMN_TYPE_INTEGER},
+      {"integer", ColumnType::COLUMN_TYPE_INTEGER},
+      {"smallint", ColumnType::COLUMN_TYPE_INTEGER},
+      {"bigint", ColumnType::COLUMN_TYPE_INTEGER},
       {"float", ColumnType::COLUMN_TYPE_FLOAT},
       {"text", ColumnType::COLUMN_TYPE_TEXT}};
   auto i = std::ranges::find_if(kNameMapping,

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "sql/connection.h"
-#include "sql/sqlite3/statement.h"
 
 #include <memory>
 #include <string>
@@ -25,16 +24,15 @@ class Statement {
 
   bool IsInitialized() const;
 
-  void Init(Connection& connection, const char* sql);
+  void Init(Connection& connection, std::string_view sql);
 
   void BindNull(unsigned column);
   void Bind(unsigned column, bool value);
   void Bind(unsigned column, int value);
   void Bind(unsigned column, int64_t value);
   void Bind(unsigned column, double value);
-  void Bind(unsigned column, const char* value);
-  void Bind(unsigned column, const std::string& value);
-  void Bind(unsigned column, const std::u16string& value);
+  void Bind(unsigned column, std::string_view value);
+  void Bind(unsigned column, std::u16string_view value);
 
   size_t GetColumnCount() const;
   ColumnType GetColumnType(unsigned column) const;

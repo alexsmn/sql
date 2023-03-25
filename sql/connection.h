@@ -16,6 +16,12 @@ class Connection {
   Connection(const Connection&) = delete;
   Connection& operator=(const Connection&) = delete;
 
+  Connection(Connection&& source) noexcept : model_{std::move(source.model_)} {}
+  Connection& operator=(Connection&& source) noexcept {
+    model_ = std::move(source.model_);
+    return *this;
+  }
+
   void Open(const OpenParams& params);
   void Close() { model_->Close(); }
 

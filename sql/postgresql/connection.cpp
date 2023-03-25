@@ -45,6 +45,8 @@ void Connection::Close() {
   begin_transaction_statement_.reset();
   commit_transaction_statement_.reset();
   rollback_transaction_statement_.reset();
+
+  table_columns_statement_.reset();
   does_table_exist_statement_.reset();
   does_column_exist_statement_.reset();
   does_index_exist_statement_.reset();
@@ -68,7 +70,7 @@ bool Connection::DoesTableExist(std::string_view table_name) const {
                                       "table_name=$1");
   }
 
-  does_table_exist_statement_->Bind(0, table_name);
+  does_table_exist_statement_->Bind(0, ToLowerCase(table_name));
 
   // Table exists if any row was returned.
   bool exists = does_table_exist_statement_->Step();
@@ -100,8 +102,7 @@ bool Connection::DoesColumnExist(std::string_view table_name,
 
 bool Connection::DoesIndexExist(std::string_view table_name,
                                 std::string_view index_name) const {
-  if (does_index_exist_table_name_ != table_name) {
-    does_index_exist_table_name_ = table_name;
+  if (!does_index_exist_statement_) {
     does_index_exist_statement_.reset(new Statement());
     does_index_exist_statement_->Init(
         *const_cast<Connection*>(this),
@@ -169,7 +170,7 @@ std::vector<Column> Connection::GetTableColumns(
         "WHERE table_schema='public' AND table_name=$1");
   }
 
-  table_columns_statement_->Bind(0, table_name);
+  table_columns_statement_->Bind(0, ToLowerCase(table_name));
 
   std::vector<Column> columns;
 

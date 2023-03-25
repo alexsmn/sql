@@ -60,7 +60,6 @@ class Connection {
   mutable std::unique_ptr<Statement> does_table_exist_statement_;
   mutable std::unique_ptr<Statement> does_column_exist_statement_;
   mutable std::unique_ptr<Statement> does_index_exist_statement_;
-  mutable std::string does_index_exist_table_name_;
 
   std::atomic<int> next_statement_id_ = 0;
 
