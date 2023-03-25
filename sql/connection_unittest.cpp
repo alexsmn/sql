@@ -50,12 +50,13 @@ TEST_P(ConnectionTest, Test) {
 
   EXPECT_FALSE(connection_.DoesTableExist("test"));
 
-  connection_.Execute("CREATE TABLE test(A INTEGER, B INTEGER)");
+  connection_.Execute("CREATE TABLE test(A INTEGER, B BIGINT, C TEXT)");
 
   EXPECT_TRUE(connection_.DoesTableExist("test"));
   EXPECT_TRUE(connection_.DoesColumnExist("test", "A"));
   EXPECT_TRUE(connection_.DoesColumnExist("test", "B"));
-  EXPECT_FALSE(connection_.DoesColumnExist("test", "C"));
+  EXPECT_TRUE(connection_.DoesColumnExist("test", "C"));
+  EXPECT_FALSE(connection_.DoesColumnExist("test", "D"));
 
   EXPECT_FALSE(connection_.DoesIndexExist("test", "A_Index"));
 
@@ -67,27 +68,37 @@ TEST_P(ConnectionTest, Test) {
   EXPECT_THAT(
       connection_.GetTableColumns("test"),
       UnorderedElementsAre(FieldsAre(StrCaseEq("A"), COLUMN_TYPE_INTEGER),
-                           FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER)));
+                           FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER),
+                           FieldsAre(StrCaseEq("C"), COLUMN_TYPE_TEXT)));
 
   Statement insert_statement;
-  insert_statement.Init(connection_, "INSERT INTO test VALUES(?, ?)");
+  insert_statement.Init(connection_, "INSERT INTO test VALUES(?, ?, ?)");
   for (int i = 1; i <= 3; ++i) {
     insert_statement.Bind(0, i * 10);
     insert_statement.Bind(1, i * 100);
+    insert_statement.Bind(2, std::string{3, static_cast<char>('A' + i)});
     insert_statement.Run();
     insert_statement.Reset();
   }
 
-  std::vector<std::pair<int, int>> values;
+  struct Row {
+    int a;
+    int64_t b;
+    std::string c;
+  };
+
+  std::vector<Row> rows;
   statement_.Init(connection_, "SELECT * FROM test");
   while (statement_.Step()) {
-    int a = statement_.GetColumnInt(0);
-    int b = statement_.GetColumnInt(1);
-    values.emplace_back(a, b);
+    auto a = statement_.GetColumnInt(0);
+    auto b = statement_.GetColumnInt64(1);
+    auto c = statement_.GetColumnString(1);
+    rows.emplace_back(a, b, std::move(c));
   }
 
-  EXPECT_THAT(values, ElementsAre(FieldsAre(10, 100), FieldsAre(20, 200),
-                                  FieldsAre(30, 300)));
+  EXPECT_THAT(rows,
+              ElementsAre(FieldsAre(10, 100, "AAA"), FieldsAre(20, 200, "BBB"),
+                          FieldsAre(30, 300, "CCC")));
 
   connection_.Execute("DROP TABLE test");
 }

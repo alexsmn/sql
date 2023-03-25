@@ -2,6 +2,7 @@
 
 #include "sql/types.h"
 
+#include <boost/container/small_vector.hpp>
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 #include <string>
@@ -14,6 +15,7 @@ class Connection;
 class Statement {
  public:
   Statement() = default;
+  Statement(Connection& connection, std::string_view sql);
   ~Statement();
 
   Statement(const Statement&) = delete;
@@ -48,12 +50,14 @@ class Statement {
   void Close();
 
  private:
+  using ParamBuffer = boost::container::small_vector<char, 8>;
+
   struct Param {
-    Oid type;
-    std::vector<char> value;
+    Oid type = InvalidOid;
+    ParamBuffer buffer;
   };
 
-  Param& GetParam(unsigned column);
+  ParamBuffer& GetParamBuffer(unsigned column, Oid type);
 
   void Prepare();
   void Execute(bool single_row);

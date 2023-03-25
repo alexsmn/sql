@@ -55,21 +55,21 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
 
   virtual std::unique_ptr<StatementModel> CreateStatementModel(
       std::string_view sql) override {
-    auto model = std::make_unique<StatementModelImpl<StatementType>>();
-    model->statement().Init(connection_, sql);
-    return model;
+    return std::make_unique<StatementModelImpl<ConnectionType, StatementType>>(
+        connection_, sql);
   }
 
  private:
   ConnectionType connection_;
 };
 
-template <class StatementType>
+template <class ConnectionType, class StatementType>
 class Connection::StatementModelImpl : public StatementModel {
  public:
   StatementModelImpl() = default;
 
-  StatementType& statement() { return statement_; }
+  StatementModelImpl(ConnectionType& connection, std::string_view sql)
+      : statement_{connection, sql} {}
 
   virtual bool IsInitialized() const override {
     return statement_.IsInitialized();

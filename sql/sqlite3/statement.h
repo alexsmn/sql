@@ -12,7 +12,8 @@ class Connection;
 
 class Statement {
  public:
-  Statement();
+  Statement() = default;
+  Statement(Connection& connection, std::string_view sql);
   ~Statement();
 
   Statement(const Statement&) = delete;

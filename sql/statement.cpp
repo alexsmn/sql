@@ -1,6 +1,12 @@
 #include "sql/statement.h"
 
+#include "sql/exception.h"
+
 namespace sql {
+
+Statement::Statement(Connection& connection, std::string_view sql) {
+  Init(connection, sql);
+}
 
 bool Statement::IsInitialized() const {
   return model_ && model_->IsInitialized();

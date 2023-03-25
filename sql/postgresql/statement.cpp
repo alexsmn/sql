@@ -5,10 +5,10 @@
 #include "sql/postgresql/postgres_util.h"
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/container/static_vector.hpp>
 #include <boost/endian/conversion.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
+#include <catalog/pg_type_d.h>
 #include <ranges>
 
 namespace sql::postgresql {
@@ -30,14 +30,16 @@ T GetResultValue(PGresult* result, unsigned column) {
 }
 
 template <class T>
-void SetBuffer(std::vector<char>& buffer, const T& value) {
+void SetBuffer(boost::container::small_vector<char, 8>& buffer,
+               const T& value) {
   buffer.resize(sizeof(T));
   memcpy(buffer.data(), &value, sizeof(T));
 }
 
+// TODO: Optimize.
 void ReplacePostgresParameters(std::string& sql) {
   size_t pos = 0;
-  for (int index = 1;;++index) {
+  for (size_t index = 1;; ++index) {
     auto q = sql.find('?', pos);
     if (q == sql.npos) {
       break;
@@ -49,6 +51,10 @@ void ReplacePostgresParameters(std::string& sql) {
 }
 
 }  // namespace
+
+Statement::Statement(Connection& connection, std::string_view sql) {
+  Init(connection, sql);
+}
 
 Statement::~Statement() {
   Close();
@@ -66,30 +72,30 @@ void Statement::Init(Connection& connection, std::string_view sql) {
 }
 
 void Statement::BindNull(unsigned column) {
-  GetParam(column);
+  GetParamBuffer(column, InvalidOid);
 }
 
 void Statement::Bind(unsigned column, bool value) {
-  Bind(column, value ? 1 : 0);
+  SetBuffer(GetParamBuffer(column, BOOLOID),
+            boost::endian::native_to_big(value ? 1 : 0));
 }
 
 void Statement::Bind(unsigned column, int value) {
-  assert(conn_);
-  SetBuffer(GetParam(column).value, boost::endian::native_to_big(value));
+  SetBuffer(GetParamBuffer(column, INT4OID),
+            boost::endian::native_to_big(value));
 }
 
 void Statement::Bind(unsigned column, int64_t value) {
-  assert(conn_);
-  SetBuffer(GetParam(column).value, boost::endian::native_to_big(value));
+  SetBuffer(GetParamBuffer(column, INT8OID),
+            boost::endian::native_to_big(value));
 }
 
 void Statement::Bind(unsigned column, double value) {
-  assert(conn_);
-  SetBuffer(GetParam(column).value, value);
+  SetBuffer(GetParamBuffer(column, FLOAT8OID), value);
 }
 
 void Statement::Bind(unsigned column, std::string_view value) {
-  GetParam(column).value.assign(value.begin(), value.end());
+  GetParamBuffer(column, TEXTOID).assign(value.begin(), value.end());
 }
 
 void Statement::Bind(unsigned column, std::u16string_view value) {
@@ -197,11 +203,14 @@ void Statement::Close() {
   }
 }
 
-Statement::Param& Statement::GetParam(unsigned column) {
+Statement::ParamBuffer& Statement::GetParamBuffer(unsigned column, Oid type) {
   if (params_.size() <= column) {
     params_.resize(column + 1);
   }
-  return params_[column];
+  auto& param = params_[column];
+  param.type = type;
+  param.buffer.clear();
+  return param.buffer;
 }
 
 void Statement::Prepare() {
@@ -211,8 +220,14 @@ void Statement::Prepare() {
     return;
   }
 
+  boost::container::small_vector<Oid, AVG_PARAM_COUNT> param_types(
+      params_.size());
+  std::ranges::transform(params_, param_types.begin(),
+                         [](auto&& p) { return p.type; });
+
   CheckPostgresResult(PQprepare(conn_, name_.c_str(), sql_.c_str(),
-                                static_cast<int>(params_.size()), nullptr));
+                                static_cast<int>(params_.size()),
+                                param_types.data()));
 
   prepared_ = true;
 }
@@ -222,18 +237,18 @@ void Statement::Execute(bool single_row) {
     return;
   }
 
-  boost::container::static_vector<const char*, AVG_PARAM_COUNT> param_values(
+  boost::container::small_vector<const char*, AVG_PARAM_COUNT> param_values(
       params_.size());
   std::ranges::transform(params_, param_values.begin(),
-                         [](auto&& p) { return p.value.data(); });
+                         [](auto&& p) { return p.buffer.data(); });
 
-  boost::container::static_vector<int, AVG_PARAM_COUNT> param_lengths(
+  boost::container::small_vector<int, AVG_PARAM_COUNT> param_lengths(
       params_.size());
   std::ranges::transform(params_, param_lengths.begin(), [](auto&& p) {
-    return static_cast<int>(p.value.size());
+    return static_cast<int>(p.buffer.size());
   });
 
-  boost::container::static_vector<int, AVG_PARAM_COUNT> param_formats(
+  boost::container::small_vector<int, AVG_PARAM_COUNT> param_formats(
       params_.size(), 1);
 
   if (single_row) {
@@ -241,11 +256,11 @@ void Statement::Execute(bool single_row) {
         conn_, name_.c_str(), static_cast<int>(param_values.size()),
         param_values.data(), param_lengths.data(), param_formats.data(), 1);
 
-    if (result != 1) {
+    if (result != PGRES_COMMAND_OK) {
       throw Exception{"Cannot send prepared query"};
     }
 
-    if (PQsetSingleRowMode(conn_) != 1) {
+    if (PQsetSingleRowMode(conn_) != PGRES_COMMAND_OK) {
       throw Exception{"Cannot enter single row mode"};
     }
 

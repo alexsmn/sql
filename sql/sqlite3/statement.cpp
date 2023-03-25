@@ -21,7 +21,9 @@ void CheckSqliteResult(::sqlite3* db, int result) {
 
 }  // namespace
 
-Statement::Statement() {}
+Statement::Statement(Connection& connection, std::string_view sql) {
+  Init(connection, sql);
+}
 
 Statement::~Statement() {
   Close();

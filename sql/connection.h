@@ -111,10 +111,10 @@ class Connection {
 
   std::unique_ptr<ConnectionModel> model_;
 
-  template <class T, class StatementType>
+  template <class ConnectionType, class StatementType>
   class ConnectionModelImpl;
 
-  template <class T>
+  template <class ConnectionType, class StatementType>
   class StatementModelImpl;
 
   friend class Statement;
