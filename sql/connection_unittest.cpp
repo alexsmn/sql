@@ -78,6 +78,7 @@ TEST_P(ConnectionTest, Test) {
     insert_statement.Bind(1, i * 100);
     insert_statement.Bind(2, std::string{3, static_cast<char>('A' + i)});
     insert_statement.Run();
+    EXPECT_EQ(1, connection_.GetLastChangeCount());
     insert_statement.Reset();
   }
 
@@ -90,6 +91,9 @@ TEST_P(ConnectionTest, Test) {
   std::vector<Row> rows;
   statement_.Init(connection_, "SELECT * FROM test");
   while (statement_.Step()) {
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement_.GetColumnType(0));
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement_.GetColumnType(1));
+    EXPECT_EQ(COLUMN_TYPE_TEXT, statement_.GetColumnType(2));
     auto a = statement_.GetColumnInt(0);
     auto b = statement_.GetColumnInt64(1);
     auto c = statement_.GetColumnString(1);

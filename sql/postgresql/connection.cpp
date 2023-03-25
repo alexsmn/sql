@@ -67,7 +67,7 @@ bool Connection::DoesTableExist(std::string_view table_name) const {
     does_table_exist_statement_->Init(*const_cast<Connection*>(this),
                                       "SELECT FROM information_schema.tables "
                                       "WHERE table_schema='public' AND "
-                                      "table_name=$1");
+                                      "table_name=?");
   }
 
   does_table_exist_statement_->Bind(0, ToLowerCase(table_name));
@@ -87,7 +87,7 @@ bool Connection::DoesColumnExist(std::string_view table_name,
     does_column_exist_statement_->Init(
         *const_cast<Connection*>(this),
         "SELECT FROM information_schema.columns WHERE table_schema='public' "
-        "AND table_name=$1 AND column_name=$2");
+        "AND table_name=? AND column_name=?");
   }
 
   does_column_exist_statement_->Bind(0, ToLowerCase(table_name));
@@ -107,7 +107,7 @@ bool Connection::DoesIndexExist(std::string_view table_name,
     does_index_exist_statement_->Init(
         *const_cast<Connection*>(this),
         "SELECT FROM pg_indexes WHERE schemaname='public' "
-        "AND tablename=$1 AND indexname=$2");
+        "AND tablename=? AND indexname=?");
   }
 
   does_index_exist_statement_->Bind(0, ToLowerCase(table_name));
@@ -151,8 +151,7 @@ void Connection::RollbackTransaction() {
 }
 
 int Connection::GetLastChangeCount() const {
-  assert(false);
-  return 0;
+  return last_change_count_;
 }
 
 std::string Connection::GenerateStatementName() {
@@ -167,7 +166,7 @@ std::vector<Column> Connection::GetTableColumns(
     table_columns_statement_->Init(
         *const_cast<Connection*>(this),
         "SELECT column_name, data_type FROM information_schema.columns "
-        "WHERE table_schema='public' AND table_name=$1");
+        "WHERE table_schema='public' AND table_name=?");
   }
 
   table_columns_statement_->Bind(0, ToLowerCase(table_name));

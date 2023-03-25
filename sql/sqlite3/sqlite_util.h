@@ -7,8 +7,8 @@ namespace sql::sqlite3 {
 
 inline constexpr std::pair<std::string_view, ColumnType>
     kSqliteColumnTypeNames[] = {
-        {"INTEGER", COLUMN_TYPE_INTEGER}, {"smallint", COLUMN_TYPE_TEXT},
-        {"bigint", COLUMN_TYPE_TEXT},     {"TEXT", COLUMN_TYPE_TEXT},
+        {"INTEGER", COLUMN_TYPE_INTEGER}, {"smallint", COLUMN_TYPE_INTEGER},
+        {"bigint", COLUMN_TYPE_INTEGER},  {"TEXT", COLUMN_TYPE_TEXT},
         {"REAL", COLUMN_TYPE_FLOAT},
 };
 

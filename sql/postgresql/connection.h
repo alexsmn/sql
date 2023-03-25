@@ -37,8 +37,6 @@ class Connection {
 
   int GetLastChangeCount() const;
 
-  // TODO: string_view
-
   bool DoesTableExist(std::string_view table_name) const;
   bool DoesColumnExist(std::string_view table_name,
                        std::string_view column_name) const;
@@ -62,6 +60,8 @@ class Connection {
   mutable std::unique_ptr<Statement> does_index_exist_statement_;
 
   std::atomic<int> next_statement_id_ = 0;
+
+  std::atomic<int> last_change_count_ = 0;
 
   friend class Statement;
 };
