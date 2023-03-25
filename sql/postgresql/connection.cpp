@@ -62,12 +62,12 @@ void Connection::Execute(std::string_view sql) {
 }
 
 bool Connection::DoesTableExist(std::string_view table_name) const {
-  if (!does_table_exist_statement_.get()) {
-    does_table_exist_statement_.reset(new Statement());
-    does_table_exist_statement_->Init(*const_cast<Connection*>(this),
-                                      "SELECT FROM information_schema.tables "
-                                      "WHERE table_schema='public' AND "
-                                      "table_name=?");
+  if (!does_table_exist_statement_) {
+    does_table_exist_statement_ =
+        std::make_unique<Statement>(*const_cast<Connection*>(this),
+                                    "SELECT FROM information_schema.tables "
+                                    "WHERE table_schema='public' AND "
+                                    "table_name=?");
   }
 
   does_table_exist_statement_->Bind(0, ToLowerCase(table_name));
@@ -83,8 +83,7 @@ bool Connection::DoesTableExist(std::string_view table_name) const {
 bool Connection::DoesColumnExist(std::string_view table_name,
                                  std::string_view column_name) const {
   if (!does_column_exist_statement_) {
-    does_column_exist_statement_ = std::make_unique<Statement>();
-    does_column_exist_statement_->Init(
+    does_column_exist_statement_ = std::make_unique<Statement>(
         *const_cast<Connection*>(this),
         "SELECT FROM information_schema.columns WHERE table_schema='public' "
         "AND table_name=? AND column_name=?");
@@ -103,8 +102,7 @@ bool Connection::DoesColumnExist(std::string_view table_name,
 bool Connection::DoesIndexExist(std::string_view table_name,
                                 std::string_view index_name) const {
   if (!does_index_exist_statement_) {
-    does_index_exist_statement_.reset(new Statement());
-    does_index_exist_statement_->Init(
+    does_index_exist_statement_ = std::make_unique<Statement>(
         *const_cast<Connection*>(this),
         "SELECT FROM pg_indexes WHERE schemaname='public' "
         "AND tablename=? AND indexname=?");
@@ -121,9 +119,9 @@ bool Connection::DoesIndexExist(std::string_view table_name,
 }
 
 void Connection::BeginTransaction() {
-  if (!begin_transaction_statement_.get()) {
-    begin_transaction_statement_.reset(new Statement());
-    begin_transaction_statement_->Init(*this, "BEGIN TRANSACTION");
+  if (!begin_transaction_statement_) {
+    begin_transaction_statement_ =
+        std::make_unique<Statement>(*this, "BEGIN TRANSACTION");
   }
 
   begin_transaction_statement_->Run();
@@ -131,9 +129,9 @@ void Connection::BeginTransaction() {
 }
 
 void Connection::CommitTransaction() {
-  if (!commit_transaction_statement_.get()) {
-    commit_transaction_statement_.reset(new Statement());
-    commit_transaction_statement_->Init(*this, "COMMIT");
+  if (!commit_transaction_statement_) {
+    commit_transaction_statement_ =
+        std::make_unique<Statement>(*this, "COMMIT");
   }
 
   commit_transaction_statement_->Run();
@@ -141,9 +139,9 @@ void Connection::CommitTransaction() {
 }
 
 void Connection::RollbackTransaction() {
-  if (!rollback_transaction_statement_.get()) {
-    rollback_transaction_statement_.reset(new Statement());
-    rollback_transaction_statement_->Init(*this, "ROLLBACK");
+  if (!rollback_transaction_statement_) {
+    rollback_transaction_statement_ =
+        std::make_unique<Statement>(*this, "ROLLBACK");
   }
 
   rollback_transaction_statement_->Run();
@@ -162,8 +160,7 @@ std::string Connection::GenerateStatementName() {
 std::vector<Column> Connection::GetTableColumns(
     std::string_view table_name) const {
   if (!table_columns_statement_) {
-    table_columns_statement_ = std::make_unique<Statement>();
-    table_columns_statement_->Init(
+    table_columns_statement_ = std::make_unique<Statement>(
         *const_cast<Connection*>(this),
         "SELECT column_name, data_type FROM information_schema.columns "
         "WHERE table_schema='public' AND table_name=?");
@@ -175,12 +172,14 @@ std::vector<Column> Connection::GetTableColumns(
 
   while (table_columns_statement_->Step()) {
     auto column_name = table_columns_statement_->GetColumnString(0);
-    auto column_data_type =
-        ParsePostgresColumnType(table_columns_statement_->GetColumnString(1));
+    auto column_type = table_columns_statement_->GetColumnString(1);
+    auto parsed_column_type = ParsePostgresColumnType(column_type);
     // TODO: Handle properly.
-    assert(column_data_type != COLUMN_TYPE_NULL);
-    columns.emplace_back(std::move(column_name), column_data_type);
+    assert(parsed_column_type != COLUMN_TYPE_NULL);
+    columns.emplace_back(std::move(column_name), parsed_column_type);
   }
+
+  table_columns_statement_->Reset();
 
   return columns;
 }

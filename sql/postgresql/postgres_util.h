@@ -23,6 +23,7 @@ inline ColumnType ParsePostgresColumnType(std::string_view str) {
       {"smallint", ColumnType::COLUMN_TYPE_INTEGER},
       {"bigint", ColumnType::COLUMN_TYPE_INTEGER},
       {"float", ColumnType::COLUMN_TYPE_FLOAT},
+      {"double precision", ColumnType::COLUMN_TYPE_FLOAT},
       {"text", ColumnType::COLUMN_TYPE_TEXT}};
   auto i = std::ranges::find_if(kNameMapping,
                                 [str](auto&& p) { return p.first == str; });

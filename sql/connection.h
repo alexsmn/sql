@@ -46,7 +46,7 @@ class Connection {
   }
 
   std::vector<Column> GetTableColumns(std::string_view table_name) const {
-    return model_->GetTableColumns(std::string{table_name}.c_str());
+    return model_->GetTableColumns(table_name);
   }
 
  private:
