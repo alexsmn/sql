@@ -12,6 +12,18 @@
 
 namespace sql::postgresql {
 
+namespace {
+
+// A convenice function since |boost::algorithm::to_lower_copy| doesn't work
+// with |std::string_view|.
+std::string ToLowerCase(std::string_view str) {
+  std::string result{str};
+  boost::algorithm::to_lower(result);
+  return result;
+}
+
+}  // namespace
+
 Connection::~Connection() {
   Close();
 }
@@ -69,21 +81,15 @@ bool Connection::DoesTableExist(std::string_view table_name) const {
 bool Connection::DoesColumnExist(std::string_view table_name,
                                  std::string_view column_name) const {
   if (!does_column_exist_statement_) {
-    std::string sql =
-        "SELECT FROM information_schema.columns WHERE table_schema='public' "
-        "AND table_name=$1 AND column_name=$2";
-
     does_column_exist_statement_ = std::make_unique<Statement>();
-    does_column_exist_statement_->Init(*const_cast<Connection*>(this),
-                                       sql.c_str());
+    does_column_exist_statement_->Init(
+        *const_cast<Connection*>(this),
+        "SELECT FROM information_schema.columns WHERE table_schema='public' "
+        "AND table_name=$1 AND column_name=$2");
   }
 
-  does_column_exist_statement_->Bind(0, table_name);
-
-  // |boost::algorithm::to_lower_copy| doesn't work with std::string_view.
-  std::string lower_column_name{column_name};
-  boost::algorithm::to_lower(lower_column_name);
-  does_column_exist_statement_->Bind(1, lower_column_name);
+  does_column_exist_statement_->Bind(0, ToLowerCase(table_name));
+  does_column_exist_statement_->Bind(1, ToLowerCase(column_name));
 
   bool exists = does_column_exist_statement_->Step();
 
@@ -95,24 +101,18 @@ bool Connection::DoesColumnExist(std::string_view table_name,
 bool Connection::DoesIndexExist(std::string_view table_name,
                                 std::string_view index_name) const {
   if (does_index_exist_table_name_ != table_name) {
-    std::string sql = "PRAGMA INDEX_LIST(";
-    sql += table_name;
-    sql += ")";
-
     does_index_exist_table_name_ = table_name;
     does_index_exist_statement_.reset(new Statement());
-    does_index_exist_statement_->Init(*const_cast<Connection*>(this),
-                                      sql.c_str());
+    does_index_exist_statement_->Init(
+        *const_cast<Connection*>(this),
+        "SELECT FROM pg_indexes WHERE schemaname='public' "
+        "AND tablename=$1 AND indexname=$2");
   }
 
-  bool exists = false;
-  while (does_index_exist_statement_->Step()) {
-    if (does_index_exist_statement_->GetColumnString(1).compare(index_name) ==
-        0) {
-      exists = true;
-      break;
-    }
-  }
+  does_index_exist_statement_->Bind(0, ToLowerCase(table_name));
+  does_index_exist_statement_->Bind(1, ToLowerCase(index_name));
+
+  bool exists = does_index_exist_statement_->Step();
 
   does_index_exist_statement_->Reset();
 

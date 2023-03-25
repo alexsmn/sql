@@ -48,11 +48,21 @@ TEST_P(ConnectionTest, Test) {
     connection_.Execute("DROP TABLE test");
   }
 
+  EXPECT_FALSE(connection_.DoesTableExist("test"));
+
   connection_.Execute("CREATE TABLE test(A INTEGER, B INTEGER)");
 
   EXPECT_TRUE(connection_.DoesTableExist("test"));
   EXPECT_TRUE(connection_.DoesColumnExist("test", "A"));
   EXPECT_TRUE(connection_.DoesColumnExist("test", "B"));
+  EXPECT_FALSE(connection_.DoesColumnExist("test", "C"));
+
+  EXPECT_FALSE(connection_.DoesIndexExist("test", "A_Index"));
+
+  connection_.Execute("CREATE INDEX A_Index ON test(A)");
+
+  EXPECT_TRUE(connection_.DoesIndexExist("test", "A_Index"));
+  EXPECT_FALSE(connection_.DoesIndexExist("test", "B_Index"));
 
   Statement insert_statement;
   insert_statement.Init(connection_, "INSERT INTO test VALUES($1, $2)");
