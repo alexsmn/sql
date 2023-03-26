@@ -2,6 +2,7 @@
 
 #include "sql/exception.h"
 #include "sql/postgresql/connection.h"
+#include "sql/postgresql/field_view.h"
 #include "sql/postgresql/postgres_util.h"
 
 #include <boost/algorithm/string/replace.hpp>
@@ -16,56 +17,6 @@ namespace sql::postgresql {
 namespace {
 
 const size_t AVG_PARAM_COUNT = 16;
-
-template <class T>
-T GetResultValue(const PGresult* result, unsigned column) {
-  assert(result);
-  assert(PQnfields(result) > column);
-  assert(PQfformat(result, column) == 1);
-  assert(PQfsize(result, column) == sizeof(T));
-
-  if (PQgetisnull(result, 0, column)) {
-    return {};
-  }
-
-  auto* buffer = PQgetvalue(result, 0, column);
-  assert(buffer);
-
-  T value;
-  memcpy(&value, buffer, sizeof(T));
-  return value;
-}
-
-int64_t GetResultInt64(const PGresult* result, unsigned column) {
-  Oid type = PQftype(result, column);
-  switch (type) {
-    case INT2OID:
-      return boost::endian::native_to_big(
-          GetResultValue<int16_t>(result, column));
-    case INT4OID:
-      return boost::endian::native_to_big(
-          GetResultValue<int32_t>(result, column));
-    case INT8OID:
-      return boost::endian::native_to_big(
-          GetResultValue<int64_t>(result, column));
-    default:
-      assert(false);
-      return 0;
-  }
-}
-
-double GetResultDouble(const PGresult* result, unsigned column) {
-  Oid type = PQftype(result, column);
-  switch (type) {
-    case FLOAT4OID:
-      return GetResultValue<float>(result, column);
-    case FLOAT8OID:
-      return GetResultValue<double>(result, column);
-    default:
-      assert(false);
-      return 0;
-  }
-}
 
 template <class T>
 void SetBuffer(boost::container::small_vector<char, 8>& buffer,
@@ -150,55 +101,36 @@ size_t Statement::GetColumnCount() const {
   return 0;
 }
 
-ColumnType Statement::GetColumnType(unsigned column) const {
-  if (PQgetisnull(result_, 0, column)) {
-    return COLUMN_TYPE_NULL;
-  }
+FieldView Statement::Get(unsigned column) const {
+  return FieldView{result_, static_cast<int>(column)};
+}
 
-  Oid type = PQftype(result_, column);
-  switch (type) {
-    case BOOLOID:
-    case INT4OID:
-    case INT8OID:
-      return COLUMN_TYPE_INTEGER;
-    case FLOAT4OID:
-    case FLOAT8OID:
-      return COLUMN_TYPE_FLOAT;
-    case TEXTOID:
-      return COLUMN_TYPE_TEXT;
-    default:
-      assert(false);
-      return COLUMN_TYPE_NULL;
-  }
+ColumnType Statement::GetColumnType(unsigned column) const {
+  return Get(column).GetType();
 }
 
 bool Statement::GetColumnBool(unsigned column) const {
-  return GetColumnInt(column) != 0;
+  return Get(column).GetBool();
 }
 
 int Statement::GetColumnInt(unsigned column) const {
-  auto result64 = GetResultInt64(result_, column);
-  return static_cast<int>(result64) == result64 ? result64 : 0;
+  return Get(column).GetInt();
 }
 
 int64_t Statement::GetColumnInt64(unsigned column) const {
-  return GetResultInt64(result_, column);
+  return Get(column).GetInt64();
 }
 
 double Statement::GetColumnDouble(unsigned column) const {
-  return GetResultDouble(result_, column);
+  return Get(column).GetDouble();
 }
 
 std::string Statement::GetColumnString(unsigned column) const {
-  assert(result_);
-  assert(PQfformat(result_, column) == 1);
-  auto* buffer = PQgetvalue(result_, 0, column);
-  return buffer ? std::string{buffer} : std::string{};
+  return Get(column).GetString();
 }
 
 std::u16string Statement::GetColumnString16(unsigned column) const {
-  std::string string = GetColumnString(column);
-  return boost::locale::conv::utf_to_utf<char16_t>(string);
+  return Get(column).GetString16();
 }
 
 void Statement::Run() {

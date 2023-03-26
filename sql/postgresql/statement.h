@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sql/postgresql/field_view.h"
 #include "sql/types.h"
 
 #include <boost/container/small_vector.hpp>
@@ -36,6 +37,7 @@ class Statement {
   size_t GetColumnCount() const;
   ColumnType GetColumnType(unsigned column) const;
 
+  FieldView Get(unsigned column) const;
   bool GetColumnBool(unsigned column) const;
   int GetColumnInt(unsigned column) const;
   int64_t GetColumnInt64(unsigned column) const;
