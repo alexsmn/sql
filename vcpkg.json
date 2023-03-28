@@ -1,0 +1,11 @@
+{
+  "name": "alexsmn-sql",
+  "version-string": "1.0",
+  "dependencies": [
+    "boost-endian",
+    "boost-locale",
+    "gtest",
+    "libpq",
+    "sqlite3"
+  ]
+}

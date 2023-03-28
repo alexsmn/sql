@@ -1,2 +1,4 @@
 /generate.bat
-/build
+/generate.sh
+/build-linux
+/build-windows

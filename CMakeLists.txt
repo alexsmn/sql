@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.24.1)
 project(sql)
 
 include(sql_library.cmake)
