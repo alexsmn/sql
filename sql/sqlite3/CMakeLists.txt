@@ -14,5 +14,5 @@ find_package(Boost COMPONENTS locale REQUIRED)
 target_link_libraries(sql_sqlite3 PUBLIC Boost::boost Boost::locale)
 
 if(NOT WIN32)
-  target_link_libraries(sql_sqlite3 PUBLIC dl)
+  # target_link_libraries(sql_sqlite3 PUBLIC dl)
 endif()

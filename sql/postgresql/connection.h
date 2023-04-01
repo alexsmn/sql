@@ -21,6 +21,8 @@ class Statement;
 
 class Connection {
  public:
+  using Statement = sql::postgresql::Statement;
+
   Connection() = default;
   explicit Connection(const OpenParams& params);
   ~Connection();
