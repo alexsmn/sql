@@ -7,7 +7,9 @@
 #include "sql/test/temp_dir.h"
 
 #include <filesystem>
+#include <format>
 #include <gmock/gmock.h>
+#include <span>
 
 using namespace testing;
 
@@ -39,6 +41,18 @@ template <>
 struct ConnectionTraits<sql::Connection>
     : ConnectionTraits<sql::sqlite3::Connection> {};
 
+struct Row {
+  int a;
+  int64_t b;
+  std::string c;
+
+  friend auto operator<=>(const Row&, const Row&) = default;
+
+  friend std::ostream& operator<<(std::ostream& stream, const Row& row) {
+    return stream << std::format("(.a={}, .b={}, .c={})", row.a, row.b, row.c);
+  }
+};
+
 template <class T>
 class ConnectionTest : public Test {
  public:
@@ -48,6 +62,8 @@ class ConnectionTest : public Test {
   virtual void TearDown() override;
 
  protected:
+  void InsertTestData(std::span<const Row> rows);
+
   T connection_;
   ConnectionTraits<T> connection_traits_;
 };
@@ -56,6 +72,15 @@ using ConnectionTypes = ::testing::Types<sql::Connection,
                                          sql::sqlite3::Connection,
                                          sql::postgresql::Connection>;
 TYPED_TEST_SUITE(ConnectionTest, ConnectionTypes);
+
+std::vector<Row> GenerateRows() {
+  std::vector<Row> rows;
+  for (int i = 1; i <= 3; ++i) {
+    rows.push_back(
+        Row{.a = i * 10, .b = i * 100, .c = static_cast<char>('A' + i - 1)});
+  }
+  return rows;
+}
 
 template <class T>
 void ConnectionTest<T>::SetUp() {
@@ -102,30 +127,24 @@ TYPED_TEST(ConnectionTest, TestIndexes) {
   EXPECT_FALSE(this->connection_.DoesIndexExist("test", "B_Index"));
 }
 
-TYPED_TEST(ConnectionTest, TestStatements) {
-  using ConnectionType = TypeParam;
-  using StatementType = ConnectionType::Statement;
-
+template <class T>
+void ConnectionTest<T>::InsertTestData(std::span<const Row> rows) {
   StatementType insert_statement{this->connection_,
                                  "INSERT INTO test VALUES(?, ?, ?)"};
-  for (int i = 1; i <= 3; ++i) {
-    insert_statement.Bind(0, i * 10);
-    insert_statement.Bind(1, i * 100);
-    insert_statement.Bind(2, std::string(3, static_cast<char>('A' + i - 1)));
+  for (auto& row : rows) {
+    insert_statement.Bind(0, row.a);
+    insert_statement.Bind(1, row.b);
+    insert_statement.Bind(2, row.c);
     insert_statement.Run();
     EXPECT_EQ(1, this->connection_.GetLastChangeCount());
     insert_statement.Reset();
   }
+}
 
-  struct Row {
-    int a;
-    int64_t b;
-    std::string c;
-  };
-
+template <class T>
+Row ReadRow(T& statement) {
   std::vector<Row> rows;
 
-  StatementType statement{this->connection_, "SELECT * FROM test"};
   while (statement.Step()) {
     EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(0));
     EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(1));
@@ -136,9 +155,70 @@ TYPED_TEST(ConnectionTest, TestStatements) {
     rows.emplace_back(a, b, std::move(c));
   }
 
-  EXPECT_THAT(rows,
-              ElementsAre(FieldsAre(10, 100, "AAA"), FieldsAre(20, 200, "BBB"),
-                          FieldsAre(30, 300, "CCC")));
+  statement.Reset();
+
+  return rows;
+}
+
+template <class T>
+std::vector<Row> ReadAllRows(T& statement) {
+  std::vector<Row> rows;
+
+  while (statement.Step()) {
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(0));
+    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(1));
+    EXPECT_EQ(COLUMN_TYPE_TEXT, statement.GetColumnType(2));
+    auto a = statement.GetColumnInt(0);
+    auto b = statement.GetColumnInt64(1);
+    auto c = statement.GetColumnString(2);
+    rows.emplace_back(a, b, std::move(c));
+  }
+
+  statement.Reset();
+
+  return rows;
+}
+
+TYPED_TEST(ConnectionTest, TestStatements) {
+  auto initial_rows = GenerateRows();
+  this->InsertTestData(initial_rows);
+
+  using ConnectionType = TypeParam;
+  using StatementType = ConnectionType::Statement;
+
+  StatementType statement{this->connection_, "SELECT * FROM test"};
+  auto rows = ReadAllRows(statement);
+
+  EXPECT_THAT(rows, ElementsAreArray(initial_rows));
+}
+
+TYPED_TEST(ConnectionTest, ParametrizedStatement) {
+  auto initial_rows = GenerateRows();
+  this->InsertTestData(initial_rows);
+
+  using ConnectionType = TypeParam;
+  using StatementType = ConnectionType::Statement;
+
+  StatementType statement{this->connection_,
+                          "SELECT * FROM test WHERE a=? AND b=? AND c=?"};
+
+  // All parameters are null.
+  statement.BindNull(0);
+  statement.BindNull(1);
+  statement.BindNull(2);
+  EXPECT_THAT(ReadAllRows(statement), ElementsAre());
+
+  // Bind one parameter.
+  statement.Bind(0, 10);
+  statement.BindNull(1);
+  statement.BindNull(2);
+  EXPECT_THAT(ReadAllRows(statement), ElementsAre());
+
+  // Bind all parameters.
+  statement.Bind(0, 10);
+  statement.Bind(1, 100);
+  statement.Bind(2, "A");
+  EXPECT_THAT(ReadAllRows(statement), ElementsAre(Row{10, 100, "A"}));
 }
 
 }  // namespace sql

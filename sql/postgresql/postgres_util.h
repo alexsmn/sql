@@ -8,7 +8,7 @@
 
 namespace sql::postgresql {
 
-inline void CheckPostgresResult(PGresult* result) {
+inline void CheckPostgresResult(const PGresult* result) {
   ExecStatusType status = PQresultStatus(result);
   if (status != PGRES_EMPTY_QUERY && status != PGRES_COMMAND_OK &&
       status != PGRES_TUPLES_OK && status != PGRES_SINGLE_TUPLE) {

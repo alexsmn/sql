@@ -1,17 +1,16 @@
 #pragma once
 
+#include "sql/postgresql/result.h"
 #include "sql/types.h"
 
 #include <cstdint>
 #include <string>
 
-typedef struct pg_result PGresult;
-
 namespace sql::postgresql {
 
 class FieldView {
  public:
-  FieldView(const PGresult* result, int field_index);
+  FieldView(const Result& result, int field_index);
 
   ColumnType GetType() const;
 
@@ -26,7 +25,7 @@ class FieldView {
   template <class T>
   T GetValue() const;
 
-  const PGresult* result_;
+  const Result& result_;
   int field_index_;
 };
 

@@ -4,28 +4,26 @@
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
 #include <catalog/pg_type_d.h>
-#include <libpq-fe.h>
-#include <libpq/libpq-fs.h>
 
 namespace sql::postgresql {
 
-FieldView::FieldView(const PGresult* result, int field_index)
+FieldView::FieldView(const Result& result, int field_index)
     : result_{result}, field_index_{field_index} {
   assert(result_);
   assert(field_index_ >= 0);
-  assert(PQnfields(result_) > field_index_);
-  assert(PQfformat(result_, field_index_) == 1);
+  assert(result_.field_count() > field_index_);
+  assert(result_.field_format(field_index_) == 1);
 }
 
 template <class T>
 T FieldView::GetValue() const {
-  assert(PQfsize(result_, field_index_) == sizeof(T));
+  assert(result_.field_size(field_index_) == sizeof(T));
 
-  if (PQgetisnull(result_, 0, field_index_)) {
+  if (result_.is_null(field_index_)) {
     return {};
   }
 
-  auto* buffer = PQgetvalue(result_, 0, field_index_);
+  auto* buffer = result_.value(field_index_);
   assert(buffer);
 
   T value;
@@ -34,11 +32,11 @@ T FieldView::GetValue() const {
 }
 
 ColumnType FieldView::GetType() const {
-  if (PQgetisnull(result_, 0, field_index_)) {
+  if (result_.is_null(field_index_)) {
     return COLUMN_TYPE_NULL;
   }
 
-  Oid type = PQftype(result_, field_index_);
+  Oid type = result_.field_type(field_index_);
   switch (type) {
     case BOOLOID:
     case INT4OID:
@@ -66,7 +64,7 @@ int FieldView::GetInt() const {
 }
 
 int64_t FieldView::GetInt64() const {
-  Oid type = PQftype(result_, field_index_);
+  Oid type = result_.field_type(field_index_);
   switch (type) {
     case INT2OID:
       return boost::endian::native_to_big(GetValue<int16_t>());
@@ -81,7 +79,7 @@ int64_t FieldView::GetInt64() const {
 }
 
 double FieldView::GetDouble() const {
-  Oid type = PQftype(result_, field_index_);
+  Oid type = result_.field_type(field_index_);
   switch (type) {
     case FLOAT4OID:
       return GetValue<float>();
@@ -94,9 +92,8 @@ double FieldView::GetDouble() const {
 }
 
 std::string FieldView::GetString() const {
-  assert(result_);
-  assert(PQfformat(result_, field_index_) == 1);
-  auto* buffer = PQgetvalue(result_, 0, field_index_);
+  assert(result_.field_format(field_index_) == 1);
+  auto* buffer = result_.value(field_index_);
   return buffer ? std::string{buffer} : std::string{};
 }
 

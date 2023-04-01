@@ -1,11 +1,10 @@
 #pragma once
 
 #include "sql/postgresql/field_view.h"
+#include "sql/postgresql/result.h"
 #include "sql/types.h"
 
 #include <boost/container/small_vector.hpp>
-#include <libpq-fe.h>
-#include <libpq/libpq-fs.h>
 #include <string>
 #include <vector>
 
@@ -58,25 +57,29 @@ class Statement {
   using ParamBuffer = boost::container::small_vector<char, 8>;
 
   struct Param {
+    // The parameter type in assigned on `Init`.
     Oid type = InvalidOid;
+    // Empty buffer is used for null values.
     ParamBuffer buffer;
   };
 
   ParamBuffer& GetParamBuffer(unsigned column, Oid type);
 
-  void Prepare();
   void Execute(bool single_row);
 
   Connection* connection_ = nullptr;
   ::PGconn* conn_ = nullptr;
-  ::PGresult* result_ = nullptr;
+  Result result_;
 
   std::string name_;
+
+  // For debugging purposes only.
+#ifndef NDEBUG
   std::string sql_;
+#endif
 
   std::vector<Param> params_;
 
-  bool prepared_ = false;
   bool executed_ = false;
 };
 

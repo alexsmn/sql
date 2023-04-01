@@ -4,6 +4,7 @@
 #include "sql/postgresql/connection.h"
 #include "sql/postgresql/field_view.h"
 #include "sql/postgresql/postgres_util.h"
+#include "sql/postgresql/result.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/endian/conversion.hpp>
@@ -23,6 +24,57 @@ void SetBuffer(boost::container::small_vector<char, 8>& buffer,
                const T& value) {
   buffer.resize(sizeof(T));
   memcpy(buffer.data(), &value, sizeof(T));
+}
+
+void SetParamInt64(int64_t value,
+                   Oid type,
+                   boost::container::small_vector<char, 8>& buffer) {
+  switch (type) {
+    case BOOLOID:
+      // TODO: Validate value narrowing.
+      SetBuffer(buffer, boost::endian::native_to_big(
+                            static_cast<int32_t>(value ? 1 : 0)));
+      return;
+    case INT4OID:
+      // TODO: Validate value narrowing.
+      SetBuffer(buffer,
+                boost::endian::native_to_big(static_cast<int32_t>(value)));
+      return;
+    case INT8OID:
+      SetBuffer(buffer, boost::endian::native_to_big(value));
+      return;
+    default:
+      assert(false);
+  }
+}
+
+void SetParamDouble(double value,
+                    Oid type,
+                    boost::container::small_vector<char, 8>& buffer) {
+  switch (type) {
+    case FLOAT4OID:
+      // TODO: Validate value narrowing.
+      SetBuffer(buffer, static_cast<float>(value));
+      return;
+    case FLOAT8OID:
+      SetBuffer(buffer, value);
+      return;
+    default:
+      assert(false);
+  }
+}
+
+void SetParamString(std::string_view str,
+                    Oid type,
+                    boost::container::small_vector<char, 8>& buffer) {
+  switch (type) {
+    case NAMEOID:
+    case TEXTOID:
+      buffer.assign(str.begin(), str.end());
+      return;
+    default:
+      assert(false);
+  }
 }
 
 // Returns parameter count.
@@ -54,36 +106,52 @@ Statement::~Statement() {
 void Statement::Init(Connection& connection, std::string_view sql) {
   assert(connection.conn_);
 
+  auto name = connection.GenerateStatementName();
+
+  std::string sanitized_sql{sql};
+  ReplacePostgresParameters(sanitized_sql);
+
+  Result result{PQprepare(connection.conn_, name.c_str(), sanitized_sql.c_str(),
+                          0, nullptr)};
+  CheckPostgresResult(result.get());
+
+  {
+    Result result{PQdescribePrepared(connection.conn_, name.c_str())};
+    CheckPostgresResult(result.get());
+
+    params_.resize(result.param_count());
+    for (int i = 0; i < result.param_count(); ++i) {
+      params_[i].type = result.param_type(i);
+    }
+  }
+
   connection_ = &connection;
   conn_ = connection.conn_;
-  name_ = connection.GenerateStatementName();
-  sql_ = sql;
+  name_ = std::move(name);
 
-  auto param_count = ReplacePostgresParameters(sql_);
-  params_.resize(param_count);
+#ifndef NDEBUG
+  sql_ = std::move(sanitized_sql);
+#endif
 }
 
 void Statement::BindNull(unsigned column) {
-  GetParamBuffer(column, InvalidOid);
+  params_[column].buffer.clear();
 }
 
 void Statement::Bind(unsigned column, bool value) {
-  SetBuffer(GetParamBuffer(column, BOOLOID),
-            boost::endian::native_to_big(value ? 1 : 0));
+  SetParamInt64(value ? 1 : 0, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, int value) {
-  SetBuffer(GetParamBuffer(column, INT4OID),
-            boost::endian::native_to_big(value));
+  SetParamInt64(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, int64_t value) {
-  SetBuffer(GetParamBuffer(column, INT8OID),
-            boost::endian::native_to_big(value));
+  SetParamInt64(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, double value) {
-  SetBuffer(GetParamBuffer(column, FLOAT8OID), value);
+  SetParamDouble(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, const char* value) {
@@ -95,12 +163,13 @@ void Statement::Bind(unsigned column, const char16_t* value) {
 }
 
 void Statement::Bind(unsigned column, std::string_view value) {
-  GetParamBuffer(column, TEXTOID).assign(value.begin(), value.end());
+  SetParamString(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, std::u16string_view value) {
-  Bind(column, boost::locale::conv::utf_to_utf<char>(
-                   value.data(), value.data() + value.size()));
+  SetParamString(boost::locale::conv::utf_to_utf<char>(
+                     value.data(), value.data() + value.size()),
+                 params_[column].type, params_[column].buffer);
 }
 
 size_t Statement::GetColumnCount() const {
@@ -144,56 +213,44 @@ std::u16string Statement::GetColumnString16(unsigned column) const {
 void Statement::Run() {
   assert(conn_);
 
-  Prepare();
   Execute(false);
 }
 
 bool Statement::Step() {
   assert(conn_);
 
-  if (result_) {
-    PQclear(result_);
-    result_ = nullptr;
-  }
+  result_.reset();
 
-  Prepare();
   Execute(true);
 
-  result_ = PQgetResult(conn_);
+  result_.reset(PQgetResult(conn_));
   if (!result_) {
     return false;
   }
 
-  CheckPostgresResult(result_);
+  CheckPostgresResult(result_.get());
 
-  return PQresultStatus(result_) == PGRES_SINGLE_TUPLE;
+  return result_.status() == PGRES_SINGLE_TUPLE;
 }
 
 void Statement::Reset() {
   assert(conn_);
 
-  if (result_) {
-    PQclear(result_);
-    result_ = nullptr;
-  }
+  result_.reset();
+  std::ranges::for_each(params_, [](auto& param) { param.buffer.clear(); });
 
   for (;;) {
-    result_ = PQgetResult(conn_);
-    if (!result_) {
+    Result result{PQgetResult(conn_)};
+    if (!result) {
       break;
     }
-    PQclear(result_);
-    result_ = nullptr;
   }
 
   executed_ = false;
 }
 
 void Statement::Close() {
-  if (result_) {
-    PQclear(result_);
-    result_ = nullptr;
-  }
+  result_.reset();
 
   if (!name_.empty()) {
     PQexec(conn_, std::format("DEALLOCATE {}", name_).c_str());
@@ -211,25 +268,6 @@ Statement::ParamBuffer& Statement::GetParamBuffer(unsigned column, Oid type) {
   param.type = type;
   param.buffer.clear();
   return param.buffer;
-}
-
-void Statement::Prepare() {
-  assert(conn_);
-
-  if (prepared_) {
-    return;
-  }
-
-  boost::container::small_vector<Oid, AVG_PARAM_COUNT> param_types(
-      params_.size());
-  std::ranges::transform(params_, param_types.begin(),
-                         [](auto&& p) { return p.type; });
-
-  CheckPostgresResult(PQprepare(conn_, name_.c_str(), sql_.c_str(),
-                                static_cast<int>(params_.size()),
-                                param_types.data()));
-
-  prepared_ = true;
 }
 
 void Statement::Execute(bool single_row) {
@@ -259,23 +297,25 @@ void Statement::Execute(bool single_row) {
         param_values.data(), param_lengths.data(), param_formats.data(), 1);
 
     if (result != PGRES_COMMAND_OK) {
-      throw Exception{"Cannot send prepared query"};
+      const char* error_message = PQerrorMessage(conn_);
+      throw Exception{error_message};
     }
 
     if (PQsetSingleRowMode(conn_) != PGRES_COMMAND_OK) {
-      throw Exception{"Cannot enter single row mode"};
+      const char* error_message = PQerrorMessage(conn_);
+      throw Exception{error_message};
     }
 
   } else {
-    result_ = PQexecPrepared(
+    result_.reset(PQexecPrepared(
         conn_, name_.c_str(), static_cast<int>(param_values.size()),
-        param_values.data(), param_lengths.data(), param_formats.data(), 1);
+        param_values.data(), param_lengths.data(), param_formats.data(), 1));
 
-    CheckPostgresResult(result_);
+    CheckPostgresResult(result_.get());
+
+    assert(connection_);
+    connection_->last_change_count_ = result_.affected_row_count();
   }
-
-  assert(connection_);
-  connection_->last_change_count_ = atoi(PQcmdTuples(result_));
 
   executed_ = true;
 }
