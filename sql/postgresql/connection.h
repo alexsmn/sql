@@ -22,6 +22,7 @@ class Statement;
 class Connection {
  public:
   Connection() = default;
+  explicit Connection(const OpenParams& params);
   ~Connection();
 
   Connection(const Connection&) = delete;

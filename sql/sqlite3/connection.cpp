@@ -10,7 +10,9 @@
 
 namespace sql::sqlite3 {
 
-Connection::Connection() {}
+Connection::Connection(const OpenParams& params) {
+  Open(params);
+}
 
 Connection::~Connection() {
   Close();
@@ -49,8 +51,10 @@ void Connection::Close() {
   does_index_exist_statement_.reset();
 
   if (db_) {
-    if (sqlite3_close(db_) != SQLITE_OK)
-      throw Exception{sqlite3_errmsg(db_)};
+    if (sqlite3_close(db_) != SQLITE_OK) {
+      const char* message = sqlite3_errmsg(db_);
+      throw Exception{message};
+    }
     db_ = nullptr;
   }
 }
@@ -58,8 +62,10 @@ void Connection::Close() {
 void Connection::Execute(std::string_view sql) {
   assert(db_);
   if (sqlite3_exec(db_, std::string{sql}.c_str(), nullptr, nullptr, nullptr) !=
-      SQLITE_OK)
-    throw Exception{sqlite3_errmsg(db_)};
+      SQLITE_OK) {
+    const char* message = sqlite3_errmsg(db_);
+    throw Exception{message};
+  }
 }
 
 bool Connection::DoesTableExist(std::string_view table_name) const {

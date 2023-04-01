@@ -24,6 +24,10 @@ std::string ToLowerCase(std::string_view str) {
 
 }  // namespace
 
+Connection::Connection(const OpenParams& params) {
+  Open(params);
+}
+
 Connection::~Connection() {
   Close();
 }

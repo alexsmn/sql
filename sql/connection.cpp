@@ -133,6 +133,10 @@ class Connection::StatementModelImpl : public StatementModel {
   StatementType statement_;
 };
 
+Connection::Connection(const OpenParams& params) {
+  Open(params);
+}
+
 void Connection::Open(const OpenParams& params) {
   assert(!model_);
 
