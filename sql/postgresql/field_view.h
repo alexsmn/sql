@@ -22,9 +22,6 @@ class FieldView {
   std::u16string GetString16() const;
 
  private:
-  template <class T>
-  T GetValue() const;
-
   const Result& result_;
   int field_index_;
 };

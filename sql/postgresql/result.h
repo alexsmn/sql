@@ -2,6 +2,7 @@
 
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
+#include <span>
 #include <string>
 
 namespace sql::postgresql {
@@ -48,8 +49,10 @@ class Result {
     return PQgetisnull(result_, 0, field_index);
   }
 
-  const char* value(int field_index) const {
-    return PQgetvalue(result_, 0, field_index);
+  std::span<const char> value(int field_index) const {
+    int size = PQgetlength(result_, 0, field_index);
+    const char* data = PQgetvalue(result_, 0, field_index);
+    return std::span<const char>{data, data + size};
   }
 
   int field_count() const { return PQnfields(result_); }

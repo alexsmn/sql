@@ -1,9 +1,12 @@
 #include "sql/postgresql/field_view.h"
 
-#include <boost/endian/conversion.hpp>
+#include "sql/exception.h"
+#include "sql/postgresql/conversions.h"
+
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
 #include <catalog/pg_type_d.h>
+#include <span>
 
 namespace sql::postgresql {
 
@@ -13,22 +16,6 @@ FieldView::FieldView(const Result& result, int field_index)
   assert(field_index_ >= 0);
   assert(result_.field_count() > field_index_);
   assert(result_.field_format(field_index_) == 1);
-}
-
-template <class T>
-T FieldView::GetValue() const {
-  assert(result_.field_size(field_index_) == sizeof(T));
-
-  if (result_.is_null(field_index_)) {
-    return {};
-  }
-
-  auto* buffer = result_.value(field_index_);
-  assert(buffer);
-
-  T value;
-  memcpy(&value, buffer, sizeof(T));
-  return value;
 }
 
 ColumnType FieldView::GetType() const {
@@ -64,37 +51,18 @@ int FieldView::GetInt() const {
 }
 
 int64_t FieldView::GetInt64() const {
-  Oid type = result_.field_type(field_index_);
-  switch (type) {
-    case INT2OID:
-      return boost::endian::native_to_big(GetValue<int16_t>());
-    case INT4OID:
-      return boost::endian::native_to_big(GetValue<int32_t>());
-    case INT8OID:
-      return boost::endian::native_to_big(GetValue<int64_t>());
-    default:
-      assert(false);
-      return 0;
-  }
+  return GetBufferInt64(result_.field_type(field_index_),
+                        result_.value(field_index_));
 }
 
 double FieldView::GetDouble() const {
-  Oid type = result_.field_type(field_index_);
-  switch (type) {
-    case FLOAT4OID:
-      return GetValue<float>();
-    case FLOAT8OID:
-      return GetValue<double>();
-    default:
-      assert(false);
-      return 0;
-  }
+  return GetBufferDouble(result_.field_type(field_index_),
+                         result_.value(field_index_));
 }
 
 std::string FieldView::GetString() const {
-  assert(result_.field_format(field_index_) == 1);
-  auto* buffer = result_.value(field_index_);
-  return buffer ? std::string{buffer} : std::string{};
+  auto buffer = result_.value(field_index_);
+  return std::string{buffer.begin(), buffer.end()};
 }
 
 std::u16string FieldView::GetString16() const {

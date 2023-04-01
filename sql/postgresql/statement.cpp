@@ -2,15 +2,14 @@
 
 #include "sql/exception.h"
 #include "sql/postgresql/connection.h"
+#include "sql/postgresql/conversions.h"
 #include "sql/postgresql/field_view.h"
 #include "sql/postgresql/postgres_util.h"
 #include "sql/postgresql/result.h"
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/endian/conversion.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
-#include <catalog/pg_type_d.h>
 #include <ranges>
 
 namespace sql::postgresql {
@@ -18,64 +17,6 @@ namespace sql::postgresql {
 namespace {
 
 const size_t AVG_PARAM_COUNT = 16;
-
-template <class T>
-void SetBuffer(boost::container::small_vector<char, 8>& buffer,
-               const T& value) {
-  buffer.resize(sizeof(T));
-  memcpy(buffer.data(), &value, sizeof(T));
-}
-
-void SetParamInt64(int64_t value,
-                   Oid type,
-                   boost::container::small_vector<char, 8>& buffer) {
-  switch (type) {
-    case BOOLOID:
-      // TODO: Validate value narrowing.
-      SetBuffer(buffer, boost::endian::native_to_big(
-                            static_cast<int32_t>(value ? 1 : 0)));
-      return;
-    case INT4OID:
-      // TODO: Validate value narrowing.
-      SetBuffer(buffer,
-                boost::endian::native_to_big(static_cast<int32_t>(value)));
-      return;
-    case INT8OID:
-      SetBuffer(buffer, boost::endian::native_to_big(value));
-      return;
-    default:
-      assert(false);
-  }
-}
-
-void SetParamDouble(double value,
-                    Oid type,
-                    boost::container::small_vector<char, 8>& buffer) {
-  switch (type) {
-    case FLOAT4OID:
-      // TODO: Validate value narrowing.
-      SetBuffer(buffer, static_cast<float>(value));
-      return;
-    case FLOAT8OID:
-      SetBuffer(buffer, value);
-      return;
-    default:
-      assert(false);
-  }
-}
-
-void SetParamString(std::string_view str,
-                    Oid type,
-                    boost::container::small_vector<char, 8>& buffer) {
-  switch (type) {
-    case NAMEOID:
-    case TEXTOID:
-      buffer.assign(str.begin(), str.end());
-      return;
-    default:
-      assert(false);
-  }
-}
 
 // Returns parameter count.
 // TODO: Optimize.
@@ -139,19 +80,21 @@ void Statement::BindNull(unsigned column) {
 }
 
 void Statement::Bind(unsigned column, bool value) {
-  SetParamInt64(value ? 1 : 0, params_[column].type, params_[column].buffer);
+  SetBufferValue(static_cast<int64_t>(value ? 1 : 0), params_[column].type,
+                 params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, int value) {
-  SetParamInt64(value, params_[column].type, params_[column].buffer);
+  SetBufferValue(static_cast<int64_t>(value), params_[column].type,
+                 params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, int64_t value) {
-  SetParamInt64(value, params_[column].type, params_[column].buffer);
+  SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, double value) {
-  SetParamDouble(value, params_[column].type, params_[column].buffer);
+  SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, const char* value) {
@@ -163,11 +106,11 @@ void Statement::Bind(unsigned column, const char16_t* value) {
 }
 
 void Statement::Bind(unsigned column, std::string_view value) {
-  SetParamString(value, params_[column].type, params_[column].buffer);
+  SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
 void Statement::Bind(unsigned column, std::u16string_view value) {
-  SetParamString(boost::locale::conv::utf_to_utf<char>(
+  SetBufferValue(boost::locale::conv::utf_to_utf<char>(
                      value.data(), value.data() + value.size()),
                  params_[column].type, params_[column].buffer);
 }
