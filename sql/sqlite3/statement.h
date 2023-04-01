@@ -28,6 +28,9 @@ class Statement {
   void Bind(unsigned column, int value);
   void Bind(unsigned column, int64_t value);
   void Bind(unsigned column, double value);
+  // Add explicit c-string parameters to avoid implicit cast to `bool`.
+  void Bind(unsigned column, const char* value);
+  void Bind(unsigned column, const char16_t* value);
   void Bind(unsigned column, std::string_view value);
   void Bind(unsigned column, std::u16string_view value);
 

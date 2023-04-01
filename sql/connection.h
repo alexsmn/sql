@@ -64,6 +64,8 @@ class Connection {
     virtual void Bind(unsigned column, int value) = 0;
     virtual void Bind(unsigned column, int64_t value) = 0;
     virtual void Bind(unsigned column, double value) = 0;
+    virtual void Bind(unsigned column, const char* value) = 0;
+    virtual void Bind(unsigned column, const char16_t* value) = 0;
     virtual void Bind(unsigned column, std::string_view value) = 0;
     virtual void Bind(unsigned column, std::u16string_view value) = 0;
 

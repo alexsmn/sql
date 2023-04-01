@@ -36,6 +36,10 @@ void Statement::Bind(unsigned column, double value) {
   model_->Bind(column, value);
 }
 
+void Statement::Bind(unsigned column, const char* value) {
+  model_->Bind(column, value);
+}
+
 void Statement::Bind(unsigned column, std::string_view value) {
   model_->Bind(column, value);
 }

@@ -90,6 +90,12 @@ class Connection::StatementModelImpl : public StatementModel {
   virtual void Bind(unsigned column, double value) override {
     statement_.Bind(column, value);
   }
+  virtual void Bind(unsigned column, const char* value) override {
+    statement_.Bind(column, value);
+  }
+  virtual void Bind(unsigned column, const char16_t* value) override {
+    statement_.Bind(column, value);
+  }
   virtual void Bind(unsigned column, std::string_view value) override {
     statement_.Bind(column, value);
   }

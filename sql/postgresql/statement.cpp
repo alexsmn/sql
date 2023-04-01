@@ -86,6 +86,14 @@ void Statement::Bind(unsigned column, double value) {
   SetBuffer(GetParamBuffer(column, FLOAT8OID), value);
 }
 
+void Statement::Bind(unsigned column, const char* value) {
+  Bind(column, std::string_view{value});
+}
+
+void Statement::Bind(unsigned column, const char16_t* value) {
+  Bind(column, std::u16string_view{value});
+}
+
 void Statement::Bind(unsigned column, std::string_view value) {
   GetParamBuffer(column, TEXTOID).assign(value.begin(), value.end());
 }

@@ -70,6 +70,14 @@ void Statement::Bind(unsigned column, double value) {
                     sqlite3_bind_double(stmt_, column + 1, value));
 }
 
+void Statement::Bind(unsigned column, const char* value) {
+  Bind(column, std::string_view{value});
+}
+
+void Statement::Bind(unsigned column, const char16_t* value) {
+  Bind(column, std::u16string_view{value});
+}
+
 void Statement::Bind(unsigned column, std::string_view value) {
   assert(stmt_);
   CheckSqliteResult(
