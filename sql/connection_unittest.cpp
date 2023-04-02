@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <format>
 #include <gmock/gmock.h>
+#include <random>
 #include <span>
 
 using namespace testing;
@@ -66,6 +67,8 @@ class ConnectionTest : public Test {
 
   T connection_;
   ConnectionTraits<T> connection_traits_;
+
+  std::string table_name_;
 };
 
 using ConnectionTypes = ::testing::Types<sql::Connection,
@@ -83,60 +86,77 @@ std::vector<Row> GenerateRows() {
 }
 
 template <class T>
+std::string GetTempTableName(const T& connection) {
+  std::mt19937 gen{std::random_device{}()};
+  std::uniform_int_distribution<> distrib(0, std::numeric_limits<int>::max());
+
+  for (int i = 0; i < 15; ++i) {
+    auto table_name = std::format("test_{}", distrib(gen));
+    if (!connection.DoesTableExist(table_name)) {
+      return table_name;
+    }
+  }
+  throw std::runtime_error{"Cannot create a temp table"};
+}
+
+template <class T>
 void ConnectionTest<T>::SetUp() {
   this->connection_.Open(this->connection_traits_.GetOpenParams());
 
-  if (this->connection_.DoesTableExist("test")) {
-    this->connection_.Execute("DROP TABLE test");
-  }
+  table_name_ = GetTempTableName(this->connection_);
 
-  EXPECT_FALSE(this->connection_.DoesTableExist("test"));
-
-  this->connection_.Execute("CREATE TABLE test(A INTEGER, B BIGINT, C TEXT)");
+  this->connection_.Execute(
+      std::format("CREATE TABLE {}(A INTEGER, B BIGINT, C TEXT)", table_name_));
 }
 
 template <class T>
 void ConnectionTest<T>::TearDown() {
-  if (this->connection_.DoesTableExist("test")) {
-    this->connection_.Execute("DROP TABLE test");
+  if (this->connection_.DoesTableExist(table_name_)) {
+    this->connection_.Execute(std::format("DROP TABLE {}", table_name_));
   }
 
   connection_.Close();
 }
 
 TYPED_TEST(ConnectionTest, TestColumns) {
-  EXPECT_TRUE(this->connection_.DoesTableExist("test"));
-  EXPECT_TRUE(this->connection_.DoesColumnExist("test", "A"));
-  EXPECT_TRUE(this->connection_.DoesColumnExist("test", "B"));
-  EXPECT_TRUE(this->connection_.DoesColumnExist("test", "C"));
-  EXPECT_FALSE(this->connection_.DoesColumnExist("test", "D"));
+  const auto& table_name = this->table_name_;
+
+  EXPECT_TRUE(this->connection_.DoesTableExist(table_name));
+  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "A"));
+  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "B"));
+  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "C"));
+  EXPECT_FALSE(this->connection_.DoesColumnExist(table_name, "D"));
 
   EXPECT_THAT(
-      this->connection_.GetTableColumns("test"),
+      this->connection_.GetTableColumns(table_name),
       UnorderedElementsAre(FieldsAre(StrCaseEq("A"), COLUMN_TYPE_INTEGER),
                            FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER),
                            FieldsAre(StrCaseEq("C"), COLUMN_TYPE_TEXT)));
 }
 
 TYPED_TEST(ConnectionTest, TestIndexes) {
-  EXPECT_FALSE(this->connection_.DoesIndexExist("test", "A_Index"));
+  const auto& table_name = this->table_name_;
 
-  this->connection_.Execute("CREATE INDEX A_Index ON test(A)");
+  EXPECT_FALSE(this->connection_.DoesIndexExist(table_name, "A_Index"));
 
-  EXPECT_TRUE(this->connection_.DoesIndexExist("test", "A_Index"));
-  EXPECT_FALSE(this->connection_.DoesIndexExist("test", "B_Index"));
+  this->connection_.Execute(
+      std::format("CREATE INDEX A_Index ON {}(A)", table_name));
+
+  EXPECT_TRUE(this->connection_.DoesIndexExist(table_name, "A_Index"));
+  EXPECT_FALSE(this->connection_.DoesIndexExist(table_name, "B_Index"));
 }
 
 template <class T>
 void ConnectionTest<T>::InsertTestData(std::span<const Row> rows) {
-  StatementType insert_statement{this->connection_,
-                                 "INSERT INTO test VALUES(?, ?, ?)"};
+  StatementType insert_statement{
+      connection_, std::format("INSERT INTO {} VALUES(?, ?, ?)", table_name_)};
+
   for (auto& row : rows) {
     insert_statement.Bind(0, row.a);
     insert_statement.Bind(1, row.b);
     insert_statement.Bind(2, row.c);
     insert_statement.Run();
-    EXPECT_EQ(1, this->connection_.GetLastChangeCount());
+    EXPECT_EQ(1, connection_.GetLastChangeCount());
     insert_statement.Reset();
   }
 }
@@ -180,19 +200,8 @@ std::vector<Row> ReadAllRows(T& statement) {
 }
 
 TYPED_TEST(ConnectionTest, TestStatements) {
-  auto initial_rows = GenerateRows();
-  this->InsertTestData(initial_rows);
+  const auto& table_name = this->table_name_;
 
-  using ConnectionType = TypeParam;
-  using StatementType = ConnectionType::Statement;
-
-  StatementType statement{this->connection_, "SELECT * FROM test"};
-  auto rows = ReadAllRows(statement);
-
-  EXPECT_THAT(rows, ElementsAreArray(initial_rows));
-}
-
-TYPED_TEST(ConnectionTest, ParametrizedStatement) {
   auto initial_rows = GenerateRows();
   this->InsertTestData(initial_rows);
 
@@ -200,7 +209,24 @@ TYPED_TEST(ConnectionTest, ParametrizedStatement) {
   using StatementType = ConnectionType::Statement;
 
   StatementType statement{this->connection_,
-                          "SELECT * FROM test WHERE a=? AND b=? AND c=?"};
+                          std::format("SELECT * FROM {}", table_name)};
+  auto rows = ReadAllRows(statement);
+
+  EXPECT_THAT(rows, ElementsAreArray(initial_rows));
+}
+
+TYPED_TEST(ConnectionTest, ParametrizedStatement) {
+  const auto& table_name = this->table_name_;
+
+  auto initial_rows = GenerateRows();
+  this->InsertTestData(initial_rows);
+
+  using ConnectionType = TypeParam;
+  using StatementType = ConnectionType::Statement;
+
+  StatementType statement{
+      this->connection_,
+      std::format("SELECT * FROM {} WHERE a=? AND b=? AND c=?", table_name)};
 
   // All parameters are null.
   statement.BindNull(0);
