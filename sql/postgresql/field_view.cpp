@@ -40,17 +40,17 @@ field_type field_view::type() const {
   }
 }
 
-bool field_view::get_bool() const {
-  return get_int64() != 0;
+bool field_view::as_bool() const {
+  return as_int64() != 0;
 }
 
-int field_view::get_int() const {
-  auto result64 = get_int64();
+int field_view::as_int() const {
+  auto result64 = as_int64();
   return static_cast<int>(result64) == result64 ? static_cast<int>(result64)
                                                 : 0;
 }
 
-int64_t field_view::get_int64() const {
+int64_t field_view::as_int64() const {
   if (result_.is_null(field_index_)) {
     return 0;
   }
@@ -59,7 +59,7 @@ int64_t field_view::get_int64() const {
                         result_.value(field_index_));
 }
 
-double field_view::get_double() const {
+double field_view::as_double() const {
   if (result_.is_null(field_index_)) {
     return 0;
   }
@@ -68,7 +68,7 @@ double field_view::get_double() const {
                          result_.value(field_index_));
 }
 
-std::string field_view::get_string() const {
+std::string field_view::as_string() const {
   if (result_.is_null(field_index_)) {
     return {};
   }
@@ -77,8 +77,8 @@ std::string field_view::get_string() const {
   return std::string{buffer.begin(), buffer.end()};
 }
 
-std::u16string field_view::get_string16() const {
-  std::string string = get_string();
+std::u16string field_view::as_string16() const {
+  std::string string = as_string();
   return boost::locale::conv::utf_to_utf<char16_t>(string);
 }
 

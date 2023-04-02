@@ -74,27 +74,35 @@ class connection::statement_model_impl : public statement_model {
   virtual void bind_null(unsigned column) override {
     statement_.bind_null(column);
   }
+
   virtual void bind(unsigned column, bool value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, int value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, int64_t value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, double value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, const char* value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, const char16_t* value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, std::string_view value) override {
     statement_.bind(column, value);
   }
+
   virtual void bind(unsigned column, std::u16string_view value) override {
     statement_.bind(column, value);
   }
@@ -107,23 +115,28 @@ class connection::statement_model_impl : public statement_model {
     return statement_.field_type(column);
   }
 
-  virtual bool get_bool(unsigned column) const override {
-    return statement_.get_bool(column);
+  virtual bool as_bool(unsigned column) const override {
+    return statement_.at(column).as_bool();
   }
-  virtual int get_int(unsigned column) const override {
-    return statement_.get_int(column);
+
+  virtual int as_int(unsigned column) const override {
+    return statement_.at(column).as_int();
   }
-  virtual int64_t get_int64(unsigned column) const override {
-    return statement_.get_int64(column);
+
+  virtual int64_t as_int64(unsigned column) const override {
+    return statement_.at(column).as_int64();
   }
-  virtual double get_double(unsigned column) const override {
-    return statement_.get_double(column);
+
+  virtual double as_double(unsigned column) const override {
+    return statement_.at(column).as_double();
   }
-  virtual std::string get_string(unsigned column) const override {
-    return statement_.get_string(column);
+
+  virtual std::string as_string(unsigned column) const override {
+    return statement_.at(column).as_string();
   }
-  virtual std::u16string get_string16(unsigned column) const override {
-    return statement_.get_string16(column);
+
+  virtual std::u16string as_string16(unsigned column) const override {
+    return statement_.at(column).as_string16();
   }
 
   virtual void query() override { statement_.query(); }

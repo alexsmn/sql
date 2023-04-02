@@ -1,29 +1,29 @@
 #pragma once
 
-#include "sql/postgresql/result.h"
 #include "sql/types.h"
 
-#include <cstdint>
 #include <string>
 
-namespace sql::postgresql {
+struct sqlite3_stmt;
+
+namespace sql::sqlite3 {
 
 class field_view {
  public:
-  field_view(const result& result, int field_index);
+  field_view(::sqlite3_stmt* stmt, int field_index);
 
   field_type type() const;
 
   bool as_bool() const;
   int as_int() const;
-  std::int64_t as_int64() const;
+  int64_t as_int64() const;
   double as_double() const;
   std::string as_string() const;
   std::u16string as_string16() const;
 
  private:
-  const result& result_;
-  int field_index_;
+  ::sqlite3_stmt* stmt_ = nullptr;
+  int field_index_ = -1;
 };
 
-}  // namespace sql::postgresql
+}  // namespace sql::sqlite3

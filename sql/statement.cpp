@@ -2,6 +2,8 @@
 
 #include "sql/exception.h"
 
+#include <cassert>
+
 namespace sql {
 
 statement::statement(connection& connection, std::string_view sql) {
@@ -56,28 +58,9 @@ field_type statement::field_type(unsigned column) const {
   return model_->field_type(column);
 }
 
-bool statement::get_bool(unsigned column) const {
-  return model_->get_bool(column);
-}
-
-int statement::get_int(unsigned column) const {
-  return model_->get_int(column);
-}
-
-int64_t statement::get_int64(unsigned column) const {
-  return model_->get_int64(column);
-}
-
-double statement::get_double(unsigned column) const {
-  return model_->get_double(column);
-}
-
-std::string statement::get_string(unsigned column) const {
-  return model_->get_string(column);
-}
-
-std::u16string statement::get_string16(unsigned column) const {
-  return model_->get_string16(column);
+field_view statement::at(unsigned column) const {
+  assert(model_);
+  return field_view{*model_, static_cast<int>(column)};
 }
 
 void statement::query() {

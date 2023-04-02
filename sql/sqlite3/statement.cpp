@@ -21,6 +21,8 @@ void CheckSqliteResult(::sqlite3* db, int result) {
 
 }  // namespace
 
+// statement
+
 statement::statement(connection& connection, std::string_view sql) {
   prepare(connection, sql);
 }
@@ -113,37 +115,8 @@ field_type statement::field_type(unsigned column) const {
   return static_cast<sql::field_type>(sqlite3_column_type(stmt_, column));
 }
 
-bool statement::get_bool(unsigned column) const {
-  return get_int(column) != 0;
-}
-
-int statement::get_int(unsigned column) const {
-  return sqlite3_column_int(stmt_, column);
-}
-
-int64_t statement::get_int64(unsigned column) const {
-  return sqlite3_column_int64(stmt_, column);
-}
-
-double statement::get_double(unsigned column) const {
-  return sqlite3_column_double(stmt_, column);
-}
-
-std::string statement::get_string(unsigned column) const {
-  const char* text =
-      reinterpret_cast<const char*>(sqlite3_column_text(stmt_, column));
-  int length = sqlite3_column_bytes(stmt_, column);
-
-  if (text && length > 0)
-    return std::string(text, static_cast<size_t>(length));
-  else
-    return std::string();
-}
-
-std::u16string statement::get_string16(unsigned column) const {
-  std::string string = get_string(column);
-  return string.empty() ? std::u16string()
-                        : boost::locale::conv::utf_to_utf<char16_t>(string);
+field_view statement::at(unsigned column) const {
+  return field_view{stmt_, static_cast<int>(column)};
 }
 
 void statement::query() {

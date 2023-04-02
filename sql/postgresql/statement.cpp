@@ -123,36 +123,12 @@ size_t statement::field_count() const {
   return 0;
 }
 
-field_view statement::at(unsigned column) const {
-  return field_view{result_, static_cast<int>(column)};
-}
-
 field_type statement::field_type(unsigned column) const {
   return at(column).type();
 }
 
-bool statement::get_bool(unsigned column) const {
-  return at(column).get_bool();
-}
-
-int statement::get_int(unsigned column) const {
-  return at(column).get_int();
-}
-
-int64_t statement::get_int64(unsigned column) const {
-  return at(column).get_int64();
-}
-
-double statement::get_double(unsigned column) const {
-  return at(column).get_double();
-}
-
-std::string statement::get_string(unsigned column) const {
-  return at(column).get_string();
-}
-
-std::u16string statement::get_string16(unsigned column) const {
-  return at(column).get_string16();
+field_view statement::at(unsigned column) const {
+  return field_view{result_, static_cast<int>(column)};
 }
 
 void statement::query() {

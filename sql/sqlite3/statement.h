@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sql/sqlite3/field_view.h"
 #include "sql/types.h"
 
 #include <string>
@@ -36,13 +37,7 @@ class statement {
 
   size_t field_count() const;
   field_type field_type(unsigned column) const;
-
-  bool get_bool(unsigned column) const;
-  int get_int(unsigned column) const;
-  int64_t get_int64(unsigned column) const;
-  double get_double(unsigned column) const;
-  std::string get_string(unsigned column) const;
-  std::u16string get_string16(unsigned column) const;
+  field_view at(unsigned column) const;
 
   void query();
   bool next();

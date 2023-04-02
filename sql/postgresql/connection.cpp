@@ -172,19 +172,19 @@ std::vector<field_info> connection::table_fields(
 
   table_columns_statement_->bind(0, ToLowerCase(table_name));
 
-  std::vector<field_info> columns;
+  std::vector<field_info> fields;
 
   while (table_columns_statement_->next()) {
-    auto column_name = table_columns_statement_->get_string(0);
-    auto column_type = table_columns_statement_->get_string(1);
-    auto parsed_column_type = ParsePostgresColumnType(column_type);
-    assert(parsed_column_type != field_type::EMPTY);
-    columns.emplace_back(std::move(column_name), parsed_column_type);
+    auto field_name = table_columns_statement_->at(0).as_string();
+    auto field_type_string = table_columns_statement_->at(1).as_string();
+    auto field_type = parse_field_type(field_type_string);
+    assert(field_type != field_type::EMPTY);
+    fields.emplace_back(std::move(field_name), field_type);
   }
 
   table_columns_statement_->reset();
 
-  return columns;
+  return fields;
 }
 
 }  // namespace sql::postgresql

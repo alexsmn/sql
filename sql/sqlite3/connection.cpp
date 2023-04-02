@@ -96,7 +96,8 @@ bool connection::field_exists(std::string_view table_name,
 
   bool exists = false;
   while (does_column_exist_statement_->next()) {
-    if (does_column_exist_statement_->get_string(1).compare(field_name) == 0) {
+    if (does_column_exist_statement_->at(1).as_string().compare(field_name) ==
+        0) {
       exists = true;
       break;
     }
@@ -118,7 +119,8 @@ bool connection::index_exists(std::string_view table_name,
 
   bool exists = false;
   while (does_index_exist_statement_->next()) {
-    if (does_index_exist_statement_->get_string(1).compare(index_name) == 0) {
+    if (does_index_exist_statement_->at(1).as_string().compare(index_name) ==
+        0) {
       exists = true;
       break;
     }
@@ -172,8 +174,8 @@ std::vector<field_info> connection::table_fields(
                       std::format("PRAGMA TABLE_INFO({})", table_name)};
 
   while (statement.next()) {
-    const auto& field_name = statement.get_string(1);
-    const auto& field_type_string = statement.get_string(2);
+    const auto& field_name = statement.at(1).as_string();
+    const auto& field_type_string = statement.at(2).as_string();
     const auto field_type = parse_field_type(field_type_string);
     assert(field_type != field_type::EMPTY);
     fields.emplace_back(field_info{field_name, field_type});

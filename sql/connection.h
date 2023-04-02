@@ -7,6 +7,7 @@
 
 namespace sql {
 
+class field_view;
 class statement;
 
 class connection {
@@ -72,12 +73,12 @@ class connection {
     virtual size_t field_count() const = 0;
     virtual field_type field_type(unsigned column) const = 0;
 
-    virtual bool get_bool(unsigned column) const = 0;
-    virtual int get_int(unsigned column) const = 0;
-    virtual int64_t get_int64(unsigned column) const = 0;
-    virtual double get_double(unsigned column) const = 0;
-    virtual std::string get_string(unsigned column) const = 0;
-    virtual std::u16string get_string16(unsigned column) const = 0;
+    virtual bool as_bool(unsigned column) const = 0;
+    virtual int as_int(unsigned column) const = 0;
+    virtual int64_t as_int64(unsigned column) const = 0;
+    virtual double as_double(unsigned column) const = 0;
+    virtual std::string as_string(unsigned column) const = 0;
+    virtual std::u16string as_string16(unsigned column) const = 0;
 
     virtual void query() = 0;
     virtual bool next() = 0;
@@ -122,6 +123,7 @@ class connection {
   template <class ConnectionType, class StatementType>
   class statement_model_impl;
 
+  friend class field_view;
   friend class statement;
 };
 
