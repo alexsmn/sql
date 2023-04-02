@@ -77,6 +77,7 @@ class connection {
     virtual int as_int(unsigned column) const = 0;
     virtual int64_t as_int64(unsigned column) const = 0;
     virtual double as_double(unsigned column) const = 0;
+    virtual std::string_view as_string_view(unsigned column) const = 0;
     virtual std::string as_string(unsigned column) const = 0;
     virtual std::u16string as_string16(unsigned column) const = 0;
 

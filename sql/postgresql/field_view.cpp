@@ -68,13 +68,17 @@ double field_view::as_double() const {
                          result_.value(field_index_));
 }
 
-std::string field_view::as_string() const {
+std::string_view field_view::as_string_view() const {
   if (result_.is_null(field_index_)) {
     return {};
   }
 
-  auto buffer = result_.value(field_index_);
-  return std::string{buffer.begin(), buffer.end()};
+  return GetBufferStringView(result_.field_type(field_index_),
+                             result_.value(field_index_));
+}
+
+std::string field_view::as_string() const {
+  return std::string{as_string_view()};
 }
 
 std::u16string field_view::as_string16() const {

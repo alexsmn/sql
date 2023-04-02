@@ -88,6 +88,18 @@ inline void SetBufferValue(double value,
   }
 }
 
+inline std::string_view GetBufferStringView(Oid type,
+                                            std::span<const char> buffer) {
+  switch (type) {
+    case NAMEOID:
+    case TEXTOID:
+      return std::string_view{buffer.begin(), buffer.end()};
+    default:
+      assert(false);
+      return std::string_view{};
+  }
+}
+
 inline void SetBufferValue(std::string_view str,
                            Oid type,
                            boost::container::small_vector<char, 8>& buffer) {

@@ -15,6 +15,9 @@ class field_view {
   int as_int() const { return statement_.as_int(field_index_); }
   int64_t as_int64() const { return statement_.as_int64(field_index_); }
   double as_double() const { return statement_.as_double(field_index_); }
+  std::string_view as_string_view() const {
+    return statement_.as_string_view(field_index_);
+  }
   std::string as_string() const { return statement_.as_string(field_index_); }
   std::u16string as_string16() const {
     return statement_.as_string16(field_index_);

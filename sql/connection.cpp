@@ -131,6 +131,10 @@ class connection::statement_model_impl : public statement_model {
     return statement_.at(column).as_double();
   }
 
+  virtual std::string_view as_string_view(unsigned column) const override {
+    return statement_.at(column).as_string_view();
+  }
+
   virtual std::string as_string(unsigned column) const override {
     return statement_.at(column).as_string();
   }

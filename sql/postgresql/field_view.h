@@ -18,6 +18,7 @@ class field_view {
   int as_int() const;
   std::int64_t as_int64() const;
   double as_double() const;
+  std::string_view as_string_view() const;
   std::string as_string() const;
   std::u16string as_string16() const;
 

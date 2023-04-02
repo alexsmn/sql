@@ -42,15 +42,19 @@ double field_view::as_double() const {
   return sqlite3_column_double(stmt_, field_index_);
 }
 
-std::string field_view::as_string() const {
+std::string_view field_view::as_string_view() const {
   const char* text =
       reinterpret_cast<const char*>(sqlite3_column_text(stmt_, field_index_));
   int length = sqlite3_column_bytes(stmt_, field_index_);
 
   if (text && length > 0)
-    return std::string(text, static_cast<size_t>(length));
+    return std::string_view{text, static_cast<size_t>(length)};
   else
-    return std::string();
+    return std::string_view{};
+}
+
+std::string field_view::as_string() const {
+  return std::string{as_string_view()};
 }
 
 std::u16string field_view::as_string16() const {
