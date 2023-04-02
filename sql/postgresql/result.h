@@ -7,16 +7,16 @@
 
 namespace sql::postgresql {
 
-class Result {
+class result {
  public:
-  Result() = default;
-  explicit Result(PGresult* result) : result_{result} {}
-  ~Result() { PQclear(result_); }
+  result() = default;
+  explicit result(PGresult* result) : result_{result} {}
+  ~result() { PQclear(result_); }
 
-  Result(const Result&) = delete;
-  Result& operator=(const Result&) = delete;
+  result(const result&) = delete;
+  result& operator=(const result&) = delete;
 
-  Result& operator=(Result&& other) noexcept {
+  result& operator=(result&& other) noexcept {
     if (result_ != other.result_) {
       PQclear(result_);
       result_ = other.result_;

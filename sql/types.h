@@ -5,15 +5,9 @@
 
 namespace sql {
 
-enum ColumnType {
-  COLUMN_TYPE_INTEGER = 1,
-  COLUMN_TYPE_FLOAT = 2,
-  COLUMN_TYPE_TEXT = 3,
-  COLUMN_TYPE_BLOB = 4,
-  COLUMN_TYPE_NULL = 5
-};
+enum class field_type { INTEGER = 1, FLOAT = 2, TEXT = 3, BLOB = 4, EMPTY = 5 };
 
-struct OpenParams {
+struct open_params {
   std::string driver;
   std::filesystem::path path;
   std::string connection_string;
@@ -22,9 +16,9 @@ struct OpenParams {
   int journal_size_limit = -1;
 };
 
-struct Column {
+struct field_info {
   std::string name;
-  ColumnType type;
+  field_type type;
 };
 
 }  // namespace sql

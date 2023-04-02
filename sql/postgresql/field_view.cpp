@@ -10,7 +10,7 @@
 
 namespace sql::postgresql {
 
-FieldView::FieldView(const Result& result, int field_index)
+field_view::field_view(const result& result, int field_index)
     : result_{result}, field_index_{field_index} {
   assert(result_);
   assert(field_index_ >= 0);
@@ -18,9 +18,9 @@ FieldView::FieldView(const Result& result, int field_index)
   assert(result_.field_format(field_index_) == 1);
 }
 
-ColumnType FieldView::GetType() const {
+field_type field_view::GetType() const {
   if (result_.is_null(field_index_)) {
-    return COLUMN_TYPE_NULL;
+    return field_type::EMPTY;
   }
 
   Oid type = result_.field_type(field_index_);
@@ -28,29 +28,29 @@ ColumnType FieldView::GetType() const {
     case BOOLOID:
     case INT4OID:
     case INT8OID:
-      return COLUMN_TYPE_INTEGER;
+      return field_type::INTEGER;
     case FLOAT4OID:
     case FLOAT8OID:
-      return COLUMN_TYPE_FLOAT;
+      return field_type::FLOAT;
     case TEXTOID:
-      return COLUMN_TYPE_TEXT;
+      return field_type::TEXT;
     default:
       assert(false);
-      return COLUMN_TYPE_NULL;
+      return field_type::EMPTY;
   }
 }
 
-bool FieldView::GetBool() const {
-  return GetInt64() != 0;
+bool field_view::get_bool() const {
+  return get_int64() != 0;
 }
 
-int FieldView::GetInt() const {
-  auto result64 = GetInt64();
+int field_view::get_int() const {
+  auto result64 = get_int64();
   return static_cast<int>(result64) == result64 ? static_cast<int>(result64)
                                                 : 0;
 }
 
-int64_t FieldView::GetInt64() const {
+int64_t field_view::get_int64() const {
   if (result_.is_null(field_index_)) {
     return 0;
   }
@@ -59,7 +59,7 @@ int64_t FieldView::GetInt64() const {
                         result_.value(field_index_));
 }
 
-double FieldView::GetDouble() const {
+double field_view::get_double() const {
   if (result_.is_null(field_index_)) {
     return 0;
   }
@@ -68,7 +68,7 @@ double FieldView::GetDouble() const {
                          result_.value(field_index_));
 }
 
-std::string FieldView::GetString() const {
+std::string field_view::get_string() const {
   if (result_.is_null(field_index_)) {
     return {};
   }
@@ -77,8 +77,8 @@ std::string FieldView::GetString() const {
   return std::string{buffer.begin(), buffer.end()};
 }
 
-std::u16string FieldView::GetString16() const {
-  std::string string = GetString();
+std::u16string field_view::get_string16() const {
+  std::string string = get_string();
   return boost::locale::conv::utf_to_utf<char16_t>(string);
 }
 

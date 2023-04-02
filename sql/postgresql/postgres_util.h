@@ -17,17 +17,17 @@ inline void CheckPostgresResult(const PGresult* result) {
   }
 }
 
-inline ColumnType ParsePostgresColumnType(std::string_view str) {
-  static const std::pair<std::string_view, ColumnType> kNameMapping[] = {
-      {"integer", ColumnType::COLUMN_TYPE_INTEGER},
-      {"smallint", ColumnType::COLUMN_TYPE_INTEGER},
-      {"bigint", ColumnType::COLUMN_TYPE_INTEGER},
-      {"float", ColumnType::COLUMN_TYPE_FLOAT},
-      {"double precision", ColumnType::COLUMN_TYPE_FLOAT},
-      {"text", ColumnType::COLUMN_TYPE_TEXT}};
+inline field_type ParsePostgresColumnType(std::string_view str) {
+  static const std::pair<std::string_view, field_type> kNameMapping[] = {
+      {"integer", field_type::INTEGER},
+      {"smallint", field_type::INTEGER},
+      {"bigint", field_type::INTEGER},
+      {"float", field_type::FLOAT},
+      {"double precision", field_type::FLOAT},
+      {"text", field_type::TEXT}};
   auto i = std::ranges::find_if(kNameMapping,
                                 [str](auto&& p) { return p.first == str; });
-  return i != std::end(kNameMapping) ? i->second : ColumnType::COLUMN_TYPE_NULL;
+  return i != std::end(kNameMapping) ? i->second : field_type::EMPTY;
 }
 
 }  // namespace sql::postgresql

@@ -4,97 +4,97 @@
 
 namespace sql {
 
-Statement::Statement(Connection& connection, std::string_view sql) {
-  Init(connection, sql);
+statement::statement(connection& connection, std::string_view sql) {
+  prepare(connection, sql);
 }
 
-bool Statement::IsInitialized() const {
-  return model_ && model_->IsInitialized();
+bool statement::is_prepared() const {
+  return model_ && model_->is_prepared();
 };
 
-void Statement::Init(Connection& connection, std::string_view sql) {
-  model_ = connection.model_->CreateStatementModel(sql);
+void statement::prepare(connection& connection, std::string_view sql) {
+  model_ = connection.model_->create_statement_model(sql);
 }
 
-void Statement::BindNull(unsigned column) {
-  model_->BindNull(column);
+void statement::bind_null(unsigned column) {
+  model_->bind_null(column);
 }
 
-void Statement::Bind(unsigned column, bool value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, bool value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, int value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, int value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, int64_t value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, int64_t value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, double value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, double value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, const char* value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, const char* value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, std::string_view value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, std::string_view value) {
+  model_->bind(column, value);
 }
 
-void Statement::Bind(unsigned column, std::u16string_view value) {
-  model_->Bind(column, value);
+void statement::bind(unsigned column, std::u16string_view value) {
+  model_->bind(column, value);
 }
 
-size_t Statement::GetColumnCount() const {
-  return model_->GetColumnCount();
+size_t statement::field_count() const {
+  return model_->field_count();
 }
 
-ColumnType Statement::GetColumnType(unsigned column) const {
-  return model_->GetColumnType(column);
+field_type statement::field_type(unsigned column) const {
+  return model_->field_type(column);
 }
 
-bool Statement::GetColumnBool(unsigned column) const {
-  return model_->GetColumnBool(column);
+bool statement::get_bool(unsigned column) const {
+  return model_->get_bool(column);
 }
 
-int Statement::GetColumnInt(unsigned column) const {
-  return model_->GetColumnInt(column);
+int statement::get_int(unsigned column) const {
+  return model_->get_int(column);
 }
 
-int64_t Statement::GetColumnInt64(unsigned column) const {
-  return model_->GetColumnInt64(column);
+int64_t statement::get_int64(unsigned column) const {
+  return model_->get_int64(column);
 }
 
-double Statement::GetColumnDouble(unsigned column) const {
-  return model_->GetColumnDouble(column);
+double statement::get_double(unsigned column) const {
+  return model_->get_double(column);
 }
 
-std::string Statement::GetColumnString(unsigned column) const {
-  return model_->GetColumnString(column);
+std::string statement::get_string(unsigned column) const {
+  return model_->get_string(column);
 }
 
-std::u16string Statement::GetColumnString16(unsigned column) const {
-  return model_->GetColumnString16(column);
+std::u16string statement::get_string16(unsigned column) const {
+  return model_->get_string16(column);
 }
 
-void Statement::Run() {
-  model_->Run();
+void statement::query() {
+  model_->query();
 }
 
-bool Statement::Step() {
-  return model_->Step();
+bool statement::next() {
+  return model_->next();
 }
 
-void Statement::Reset() {
-  model_->Reset();
+void statement::reset() {
+  model_->reset();
 }
 
-void Statement::Close() {
+void statement::close() {
   if (model_) {
-    model_->Close();
+    model_->close();
     model_.reset();
   }
 }

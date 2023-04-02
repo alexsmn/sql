@@ -36,15 +36,15 @@ size_t ReplacePostgresParameters(std::string& sql) {
 
 }  // namespace
 
-Statement::Statement(Connection& connection, std::string_view sql) {
-  Init(connection, sql);
+statement::statement(connection& connection, std::string_view sql) {
+  prepare(connection, sql);
 }
 
-Statement::~Statement() {
-  Close();
+statement::~statement() {
+  close();
 }
 
-void Statement::Init(Connection& connection, std::string_view sql) {
+void statement::prepare(connection& connection, std::string_view sql) {
   assert(connection.conn_);
 
   auto name = connection.GenerateStatementName();
@@ -52,17 +52,19 @@ void Statement::Init(Connection& connection, std::string_view sql) {
   std::string sanitized_sql{sql};
   ReplacePostgresParameters(sanitized_sql);
 
-  Result result{PQprepare(connection.conn_, name.c_str(), sanitized_sql.c_str(),
-                          0, nullptr)};
-  CheckPostgresResult(result.get());
+  {
+    result res{PQprepare(connection.conn_, name.c_str(), sanitized_sql.c_str(),
+                         0, nullptr)};
+    CheckPostgresResult(res.get());
+  }
 
   {
-    Result result{PQdescribePrepared(connection.conn_, name.c_str())};
-    CheckPostgresResult(result.get());
+    result res{PQdescribePrepared(connection.conn_, name.c_str())};
+    CheckPostgresResult(res.get());
 
-    params_.resize(result.param_count());
-    for (int i = 0; i < result.param_count(); ++i) {
-      params_[i].type = result.param_type(i);
+    params_.resize(res.param_count());
+    for (int i = 0; i < res.param_count(); ++i) {
+      params_[i].type = res.param_type(i);
     }
   }
 
@@ -75,96 +77,96 @@ void Statement::Init(Connection& connection, std::string_view sql) {
 #endif
 }
 
-void Statement::BindNull(unsigned column) {
+void statement::bind_null(unsigned column) {
   params_[column].buffer.clear();
 }
 
-void Statement::Bind(unsigned column, bool value) {
+void statement::bind(unsigned column, bool value) {
   SetBufferValue(static_cast<int64_t>(value ? 1 : 0), params_[column].type,
                  params_[column].buffer);
 }
 
-void Statement::Bind(unsigned column, int value) {
+void statement::bind(unsigned column, int value) {
   SetBufferValue(static_cast<int64_t>(value), params_[column].type,
                  params_[column].buffer);
 }
 
-void Statement::Bind(unsigned column, int64_t value) {
+void statement::bind(unsigned column, int64_t value) {
   SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
-void Statement::Bind(unsigned column, double value) {
+void statement::bind(unsigned column, double value) {
   SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
-void Statement::Bind(unsigned column, const char* value) {
-  Bind(column, std::string_view{value});
+void statement::bind(unsigned column, const char* value) {
+  bind(column, std::string_view{value});
 }
 
-void Statement::Bind(unsigned column, const char16_t* value) {
-  Bind(column, std::u16string_view{value});
+void statement::bind(unsigned column, const char16_t* value) {
+  bind(column, std::u16string_view{value});
 }
 
-void Statement::Bind(unsigned column, std::string_view value) {
+void statement::bind(unsigned column, std::string_view value) {
   SetBufferValue(value, params_[column].type, params_[column].buffer);
 }
 
-void Statement::Bind(unsigned column, std::u16string_view value) {
+void statement::bind(unsigned column, std::u16string_view value) {
   SetBufferValue(boost::locale::conv::utf_to_utf<char>(
                      value.data(), value.data() + value.size()),
                  params_[column].type, params_[column].buffer);
 }
 
-size_t Statement::GetColumnCount() const {
+size_t statement::field_count() const {
   assert(conn_);
   assert(false);
   return 0;
 }
 
-FieldView Statement::Get(unsigned column) const {
-  return FieldView{result_, static_cast<int>(column)};
+field_view statement::Get(unsigned column) const {
+  return field_view{result_, static_cast<int>(column)};
 }
 
-ColumnType Statement::GetColumnType(unsigned column) const {
+field_type statement::field_type(unsigned column) const {
   return Get(column).GetType();
 }
 
-bool Statement::GetColumnBool(unsigned column) const {
-  return Get(column).GetBool();
+bool statement::get_bool(unsigned column) const {
+  return Get(column).get_bool();
 }
 
-int Statement::GetColumnInt(unsigned column) const {
-  return Get(column).GetInt();
+int statement::get_int(unsigned column) const {
+  return Get(column).get_int();
 }
 
-int64_t Statement::GetColumnInt64(unsigned column) const {
-  return Get(column).GetInt64();
+int64_t statement::get_int64(unsigned column) const {
+  return Get(column).get_int64();
 }
 
-double Statement::GetColumnDouble(unsigned column) const {
-  return Get(column).GetDouble();
+double statement::get_double(unsigned column) const {
+  return Get(column).get_double();
 }
 
-std::string Statement::GetColumnString(unsigned column) const {
-  return Get(column).GetString();
+std::string statement::get_string(unsigned column) const {
+  return Get(column).get_string();
 }
 
-std::u16string Statement::GetColumnString16(unsigned column) const {
-  return Get(column).GetString16();
+std::u16string statement::get_string16(unsigned column) const {
+  return Get(column).get_string16();
 }
 
-void Statement::Run() {
+void statement::query() {
   assert(conn_);
 
-  Execute(false);
+  query(false);
 }
 
-bool Statement::Step() {
+bool statement::next() {
   assert(conn_);
 
   result_.reset();
 
-  Execute(true);
+  query(true);
 
   result_.reset(PQgetResult(conn_));
   if (!result_) {
@@ -176,14 +178,14 @@ bool Statement::Step() {
   return result_.status() == PGRES_SINGLE_TUPLE;
 }
 
-void Statement::Reset() {
+void statement::reset() {
   assert(conn_);
 
   result_.reset();
   std::ranges::for_each(params_, [](auto& param) { param.buffer.clear(); });
 
   for (;;) {
-    Result result{PQgetResult(conn_)};
+    result result{PQgetResult(conn_)};
     if (!result) {
       break;
     }
@@ -192,7 +194,7 @@ void Statement::Reset() {
   executed_ = false;
 }
 
-void Statement::Close() {
+void statement::close() {
   result_.reset();
 
   if (!name_.empty()) {
@@ -201,7 +203,7 @@ void Statement::Close() {
   }
 }
 
-Statement::ParamBuffer& Statement::GetParamBuffer(unsigned column, Oid type) {
+statement::ParamBuffer& statement::GetParamBuffer(unsigned column, Oid type) {
   if (params_.size() <= column) {
     throw Exception{
         "The parameter index exceeds the parameter count in the prepared SQL "
@@ -213,7 +215,7 @@ Statement::ParamBuffer& Statement::GetParamBuffer(unsigned column, Oid type) {
   return param.buffer;
 }
 
-void Statement::Execute(bool single_row) {
+void statement::query(bool single_row) {
   if (executed_) {
     return;
   }

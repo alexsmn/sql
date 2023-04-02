@@ -7,122 +7,122 @@
 
 namespace sql {
 
-class Statement;
+class statement;
 
-class Connection {
+class connection {
  public:
-  using Statement = sql::Statement;
+  using statement = sql::statement;
 
-  Connection() = default;
-  explicit Connection(const OpenParams& params);
+  connection() = default;
+  explicit connection(const open_params& params);
 
-  Connection(const Connection&) = delete;
-  Connection& operator=(const Connection&) = delete;
+  connection(const connection&) = delete;
+  connection& operator=(const connection&) = delete;
 
-  Connection(Connection&& source) noexcept : model_{std::move(source.model_)} {}
-  Connection& operator=(Connection&& source) noexcept {
+  connection(connection&& source) noexcept : model_{std::move(source.model_)} {}
+  connection& operator=(connection&& source) noexcept {
     model_ = std::move(source.model_);
     return *this;
   }
 
-  void Open(const OpenParams& params);
-  void Close() { model_->Close(); }
+  void open(const open_params& params);
+  void close() { model_->close(); }
 
-  void Execute(std::string_view sql) { model_->Execute(sql); }
+  void query(std::string_view sql) { model_->query(sql); }
 
-  void BeginTransaction() { model_->BeginTransaction(); }
-  void CommitTransaction() { model_->CommitTransaction(); }
-  void RollbackTransaction() { model_->RollbackTransaction(); }
+  void start() { model_->start(); }
+  void commit() { model_->commit(); }
+  void rollback() { model_->rollback(); }
 
-  int GetLastChangeCount() const { return model_->GetLastChangeCount(); }
+  int last_change_count() const { return model_->last_change_count(); }
 
-  bool DoesTableExist(std::string_view table_name) const {
-    return model_->DoesTableExist(table_name);
+  bool table_exists(std::string_view table_name) const {
+    return model_->table_exists(table_name);
   }
-  bool DoesColumnExist(std::string_view table_name,
-                       std::string_view column_name) const {
-    return model_->DoesColumnExist(table_name, column_name);
+  bool field_exists(std::string_view table_name,
+                    std::string_view column_name) const {
+    return model_->field_exists(table_name, column_name);
   }
-  bool DoesIndexExist(std::string_view table_name,
-                      std::string_view index_name) const {
-    return model_->DoesIndexExist(table_name, index_name);
+  bool index_exists(std::string_view table_name,
+                    std::string_view index_name) const {
+    return model_->index_exists(table_name, index_name);
   }
 
-  std::vector<Column> GetTableColumns(std::string_view table_name) const {
-    return model_->GetTableColumns(table_name);
+  std::vector<field_info> table_fields(std::string_view table_name) const {
+    return model_->table_fields(table_name);
   }
 
  private:
-  class StatementModel {
+  class statement_model {
    public:
-    virtual ~StatementModel() = default;
+    virtual ~statement_model() = default;
 
-    virtual bool IsInitialized() const = 0;
+    virtual bool is_prepared() const = 0;
 
-    virtual void BindNull(unsigned column) = 0;
-    virtual void Bind(unsigned column, bool value) = 0;
-    virtual void Bind(unsigned column, int value) = 0;
-    virtual void Bind(unsigned column, int64_t value) = 0;
-    virtual void Bind(unsigned column, double value) = 0;
-    virtual void Bind(unsigned column, const char* value) = 0;
-    virtual void Bind(unsigned column, const char16_t* value) = 0;
-    virtual void Bind(unsigned column, std::string_view value) = 0;
-    virtual void Bind(unsigned column, std::u16string_view value) = 0;
+    virtual void bind_null(unsigned column) = 0;
+    virtual void bind(unsigned column, bool value) = 0;
+    virtual void bind(unsigned column, int value) = 0;
+    virtual void bind(unsigned column, int64_t value) = 0;
+    virtual void bind(unsigned column, double value) = 0;
+    virtual void bind(unsigned column, const char* value) = 0;
+    virtual void bind(unsigned column, const char16_t* value) = 0;
+    virtual void bind(unsigned column, std::string_view value) = 0;
+    virtual void bind(unsigned column, std::u16string_view value) = 0;
 
-    virtual size_t GetColumnCount() const = 0;
-    virtual ColumnType GetColumnType(unsigned column) const = 0;
+    virtual size_t field_count() const = 0;
+    virtual field_type field_type(unsigned column) const = 0;
 
-    virtual bool GetColumnBool(unsigned column) const = 0;
-    virtual int GetColumnInt(unsigned column) const = 0;
-    virtual int64_t GetColumnInt64(unsigned column) const = 0;
-    virtual double GetColumnDouble(unsigned column) const = 0;
-    virtual std::string GetColumnString(unsigned column) const = 0;
-    virtual std::u16string GetColumnString16(unsigned column) const = 0;
+    virtual bool get_bool(unsigned column) const = 0;
+    virtual int get_int(unsigned column) const = 0;
+    virtual int64_t get_int64(unsigned column) const = 0;
+    virtual double get_double(unsigned column) const = 0;
+    virtual std::string get_string(unsigned column) const = 0;
+    virtual std::u16string get_string16(unsigned column) const = 0;
 
-    virtual void Run() = 0;
-    virtual bool Step() = 0;
-    virtual void Reset() = 0;
+    virtual void query() = 0;
+    virtual bool next() = 0;
+    virtual void reset() = 0;
 
-    virtual void Close() = 0;
+    virtual void close() = 0;
   };
 
-  class ConnectionModel {
+  class connection_model {
    public:
-    virtual ~ConnectionModel() = default;
+    virtual ~connection_model() = default;
 
-    virtual void Open(const OpenParams& params) = 0;
-    virtual void Close() = 0;
+    virtual void open(const open_params& params) = 0;
+    virtual void close() = 0;
 
-    virtual void Execute(std::string_view sql) = 0;
+    virtual void query(std::string_view sql) = 0;
 
-    virtual void BeginTransaction() = 0;
-    virtual void CommitTransaction() = 0;
-    virtual void RollbackTransaction() = 0;
+    virtual void start() = 0;
+    virtual void commit() = 0;
+    virtual void rollback() = 0;
 
-    virtual int GetLastChangeCount() const = 0;
+    virtual int last_change_count() const = 0;
 
-    virtual bool DoesTableExist(std::string_view table_name) const = 0;
-    virtual bool DoesColumnExist(std::string_view table_name,
-                                 std::string_view column_name) const = 0;
-    virtual bool DoesIndexExist(std::string_view table_name,
-                                std::string_view index_name) const = 0;
+    virtual bool table_exists(std::string_view table_name) const = 0;
+    virtual bool field_exists(std::string_view table_name,
+                              std::string_view column_name) const = 0;
+    virtual bool index_exists(std::string_view table_name,
+                              std::string_view index_name) const = 0;
 
-    virtual std::vector<Column> GetTableColumns(
+    virtual std::vector<field_info> table_fields(
         std::string_view table_name) const = 0;
 
-    virtual std::unique_ptr<StatementModel> CreateStatementModel(
+    virtual std::unique_ptr<statement_model> create_statement_model(
         std::string_view sql) = 0;
   };
 
-  std::unique_ptr<ConnectionModel> model_;
+  std::unique_ptr<connection_model> model_;
 
   template <class ConnectionType, class StatementType>
-  class ConnectionModelImpl;
+  class connection_model_impl;
 
   template <class ConnectionType, class StatementType>
-  class StatementModelImpl;
+  class statement_model_impl;
 
-  friend class Statement;
+  friend class statement;
 };
 
 }  // namespace sql

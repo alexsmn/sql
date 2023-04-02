@@ -8,21 +8,21 @@
 
 namespace sql::postgresql {
 
-class FieldView {
+class field_view {
  public:
-  FieldView(const Result& result, int field_index);
+  field_view(const result& result, int field_index);
 
-  ColumnType GetType() const;
+  field_type GetType() const;
 
-  bool GetBool() const;
-  int GetInt() const;
-  std::int64_t GetInt64() const;
-  double GetDouble() const;
-  std::string GetString() const;
-  std::u16string GetString16() const;
+  bool get_bool() const;
+  int get_int() const;
+  std::int64_t get_int64() const;
+  double get_double() const;
+  std::string get_string() const;
+  std::u16string get_string16() const;
 
  private:
-  const Result& result_;
+  const result& result_;
   int field_index_;
 };
 

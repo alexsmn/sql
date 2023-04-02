@@ -10,15 +10,15 @@
 
 namespace sql::sqlite3 {
 
-Connection::Connection(const OpenParams& params) {
-  Open(params);
+connection::connection(const open_params& params) {
+  open(params);
 }
 
-Connection::~Connection() {
-  Close();
+connection::~connection() {
+  close();
 }
 
-void Connection::Open(const OpenParams& params) {
+void connection::open(const open_params& params) {
   assert(!db_);
 
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -30,19 +30,19 @@ void Connection::Open(const OpenParams& params) {
       flags, nullptr);
   if (error != SQLITE_OK) {
     db_ = nullptr;
-    throw Exception{"Open error"};
+    throw Exception{"open error"};
   }
 
   if (params.exclusive_locking)
-    Execute("PRAGMA locking_mode=EXCLUSIVE");
+    query("PRAGMA locking_mode=EXCLUSIVE");
 
   if (params.journal_size_limit != -1) {
-    Execute(
+    query(
         std::format("PRAGMA journal_size_limit={}", params.journal_size_limit));
   }
 }
 
-void Connection::Close() {
+void connection::close() {
   begin_transaction_statement_.reset();
   commit_transaction_statement_.reset();
   rollback_transaction_statement_.reset();
@@ -59,7 +59,7 @@ void Connection::Close() {
   }
 }
 
-void Connection::Execute(std::string_view sql) {
+void connection::query(std::string_view sql) {
   assert(db_);
   if (sqlite3_exec(db_, std::string{sql}.c_str(), nullptr, nullptr, nullptr) !=
       SQLITE_OK) {
@@ -68,121 +68,115 @@ void Connection::Execute(std::string_view sql) {
   }
 }
 
-bool Connection::DoesTableExist(std::string_view table_name) const {
+bool connection::table_exists(std::string_view table_name) const {
   if (!does_table_exist_statement_.get()) {
-    does_table_exist_statement_.reset(new Statement());
-    does_table_exist_statement_->Init(*const_cast<Connection*>(this),
-                                      "SELECT name FROM sqlite_master "
-                                      "WHERE type='table' AND name=?");
+    does_table_exist_statement_ = std::make_unique<statement>(
+        *const_cast<connection*>(this),
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?");
   }
 
-  does_table_exist_statement_->Bind(0, table_name);
+  does_table_exist_statement_->bind(0, table_name);
 
   // Table exists if any row was returned.
-  bool exists = does_table_exist_statement_->Step();
+  bool exists = does_table_exist_statement_->next();
 
-  does_table_exist_statement_->Reset();
+  does_table_exist_statement_->reset();
 
   return exists;
 }
 
-bool Connection::DoesColumnExist(std::string_view table_name,
-                                 std::string_view column_name) const {
+bool connection::field_exists(std::string_view table_name,
+                              std::string_view field_name) const {
   if (does_column_exist_table_name_ != table_name) {
     does_column_exist_table_name_ = table_name;
-    does_column_exist_statement_.reset(new Statement());
-    does_column_exist_statement_->Init(
-        *const_cast<Connection*>(this),
+    does_column_exist_statement_ = std::make_unique<statement>(
+        *const_cast<connection*>(this),
         std::format("PRAGMA TABLE_INFO({})", table_name));
   }
 
   bool exists = false;
-  while (does_column_exist_statement_->Step()) {
-    if (does_column_exist_statement_->GetColumnString(1).compare(column_name) ==
-        0) {
+  while (does_column_exist_statement_->next()) {
+    if (does_column_exist_statement_->get_string(1).compare(field_name) == 0) {
       exists = true;
       break;
     }
   }
 
-  does_column_exist_statement_->Reset();
+  does_column_exist_statement_->reset();
 
   return exists;
 }
 
-bool Connection::DoesIndexExist(std::string_view table_name,
-                                std::string_view index_name) const {
+bool connection::index_exists(std::string_view table_name,
+                              std::string_view index_name) const {
   if (does_index_exist_table_name_ != table_name) {
     does_index_exist_table_name_ = table_name;
-    does_index_exist_statement_.reset(new Statement());
-    does_index_exist_statement_->Init(
-        *const_cast<Connection*>(this),
+    does_index_exist_statement_ = std::make_unique<statement>(
+        *const_cast<connection*>(this),
         std::format("PRAGMA INDEX_LIST({})", table_name));
   }
 
   bool exists = false;
-  while (does_index_exist_statement_->Step()) {
-    if (does_index_exist_statement_->GetColumnString(1).compare(index_name) ==
-        0) {
+  while (does_index_exist_statement_->next()) {
+    if (does_index_exist_statement_->get_string(1).compare(index_name) == 0) {
       exists = true;
       break;
     }
   }
 
-  does_index_exist_statement_->Reset();
+  does_index_exist_statement_->reset();
 
   return exists;
 }
 
-void Connection::BeginTransaction() {
+void connection::start() {
   if (!begin_transaction_statement_.get()) {
-    begin_transaction_statement_.reset(new Statement());
-    begin_transaction_statement_->Init(*this, "BEGIN TRANSACTION");
+    begin_transaction_statement_ =
+        std::make_unique<statement>(*this, "BEGIN TRANSACTION");
   }
 
-  begin_transaction_statement_->Run();
-  begin_transaction_statement_->Reset();
+  begin_transaction_statement_->query();
+  begin_transaction_statement_->reset();
 }
 
-void Connection::CommitTransaction() {
+void connection::commit() {
   if (!commit_transaction_statement_.get()) {
-    commit_transaction_statement_.reset(new Statement());
-    commit_transaction_statement_->Init(*this, "COMMIT");
+    commit_transaction_statement_ =
+        std::make_unique<statement>(*this, "COMMIT");
   }
 
-  commit_transaction_statement_->Run();
-  commit_transaction_statement_->Reset();
+  commit_transaction_statement_->query();
+  commit_transaction_statement_->reset();
 }
 
-void Connection::RollbackTransaction() {
+void connection::rollback() {
   if (!rollback_transaction_statement_.get()) {
-    rollback_transaction_statement_.reset(new Statement());
-    rollback_transaction_statement_->Init(*this, "ROLLBACK");
+    rollback_transaction_statement_ =
+        std::make_unique<statement>(*this, "ROLLBACK");
   }
 
-  rollback_transaction_statement_->Run();
-  rollback_transaction_statement_->Reset();
+  rollback_transaction_statement_->query();
+  rollback_transaction_statement_->reset();
 }
 
-int Connection::GetLastChangeCount() const {
+int connection::last_change_count() const {
   assert(db_);
   return sqlite3_changes(db_);
 }
 
-std::vector<Column> Connection::GetTableColumns(
+std::vector<field_info> connection::table_fields(
     std::string_view table_name) const {
-  std::vector<Column> columns;
+  std::vector<field_info> columns;
 
-  Statement statement;
-  statement.Init(*const_cast<Connection*>(this),
-                 std::format("PRAGMA TABLE_INFO({})", table_name));
+  statement statement{*const_cast<connection*>(this),
+                      std::format("PRAGMA TABLE_INFO({})", table_name)};
 
-  while (statement.Step()) {
-    const auto& field_name = statement.GetColumnString(1);
-    const auto& field_type = statement.GetColumnString(2);
+  while (statement.next()) {
+    const auto& field_name = statement.get_string(1);
+    const auto& field_type = statement.get_string(2);
     const auto data_type = ParseSqliteColumnType(field_type);
-    assert(data_type != COLUMN_TYPE_NULL);
-    columns.emplace_back(Column{field_name, data_type});
+    assert(data_type != field_type::EMPTY);
+    columns.emplace_back(field_info{field_name, data_type});
   }
 
   return columns;

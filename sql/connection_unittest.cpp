@@ -17,11 +17,11 @@ using namespace testing;
 namespace sql {
 
 template <class T>
-struct ConnectionTraits;
+struct connection_traits;
 
 template <>
-struct ConnectionTraits<sql::sqlite3::Connection> {
-  sql::OpenParams GetOpenParams() {
+struct connection_traits<sql::sqlite3::connection> {
+  sql::open_params GetOpenParams() {
     return {.driver = "sqlite", .path = temp_dir_.get() / "database.sqlite3"};
   }
 
@@ -29,8 +29,8 @@ struct ConnectionTraits<sql::sqlite3::Connection> {
 };
 
 template <>
-struct ConnectionTraits<sql::postgresql::Connection> {
-  sql::OpenParams GetOpenParams() {
+struct connection_traits<sql::postgresql::connection> {
+  sql::open_params GetOpenParams() {
     return {
         .driver = "postgres",
         .connection_string =
@@ -39,8 +39,8 @@ struct ConnectionTraits<sql::postgresql::Connection> {
 };
 
 template <>
-struct ConnectionTraits<sql::Connection>
-    : ConnectionTraits<sql::sqlite3::Connection> {};
+struct connection_traits<sql::connection>
+    : connection_traits<sql::sqlite3::connection> {};
 
 struct Row {
   int a;
@@ -57,7 +57,7 @@ struct Row {
 template <class T>
 class ConnectionTest : public Test {
  public:
-  using StatementType = typename T::Statement;
+  using StatementType = typename T::statement;
 
   virtual void SetUp() override;
   virtual void TearDown() override;
@@ -66,15 +66,15 @@ class ConnectionTest : public Test {
   void InsertTestData(std::span<const Row> rows);
 
   T connection_;
-  ConnectionTraits<T> connection_traits_;
+  connection_traits<T> connection_traits_;
 
   std::string table_name_;
 };
 
-using ConnectionTypes = ::testing::Types<sql::Connection,
-                                         sql::sqlite3::Connection,
-                                         sql::postgresql::Connection>;
-TYPED_TEST_SUITE(ConnectionTest, ConnectionTypes);
+using connection_types = ::testing::Types<sql::connection,
+                                          sql::sqlite3::connection,
+                                          sql::postgresql::connection>;
+TYPED_TEST_SUITE(ConnectionTest, connection_types);
 
 std::vector<Row> GenerateRows() {
   std::vector<Row> rows;
@@ -92,7 +92,7 @@ std::string GetTempTableName(const T& connection) {
 
   for (int i = 0; i < 15; ++i) {
     auto table_name = std::format("test_{}", distrib(gen));
-    if (!connection.DoesTableExist(table_name)) {
+    if (!connection.table_exists(table_name)) {
       return table_name;
     }
   }
@@ -101,49 +101,49 @@ std::string GetTempTableName(const T& connection) {
 
 template <class T>
 void ConnectionTest<T>::SetUp() {
-  this->connection_.Open(this->connection_traits_.GetOpenParams());
+  this->connection_.open(this->connection_traits_.GetOpenParams());
 
   table_name_ = GetTempTableName(this->connection_);
 
-  this->connection_.Execute(
+  this->connection_.query(
       std::format("CREATE TABLE {}(A INTEGER, B BIGINT, C TEXT)", table_name_));
 }
 
 template <class T>
 void ConnectionTest<T>::TearDown() {
-  if (this->connection_.DoesTableExist(table_name_)) {
-    this->connection_.Execute(std::format("DROP TABLE {}", table_name_));
+  if (this->connection_.table_exists(table_name_)) {
+    this->connection_.query(std::format("DROP TABLE {}", table_name_));
   }
 
-  connection_.Close();
+  connection_.close();
 }
 
 TYPED_TEST(ConnectionTest, TestColumns) {
   const auto& table_name = this->table_name_;
 
-  EXPECT_TRUE(this->connection_.DoesTableExist(table_name));
-  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "A"));
-  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "B"));
-  EXPECT_TRUE(this->connection_.DoesColumnExist(table_name, "C"));
-  EXPECT_FALSE(this->connection_.DoesColumnExist(table_name, "D"));
+  EXPECT_TRUE(this->connection_.table_exists(table_name));
+  EXPECT_TRUE(this->connection_.field_exists(table_name, "A"));
+  EXPECT_TRUE(this->connection_.field_exists(table_name, "B"));
+  EXPECT_TRUE(this->connection_.field_exists(table_name, "C"));
+  EXPECT_FALSE(this->connection_.field_exists(table_name, "D"));
 
   EXPECT_THAT(
-      this->connection_.GetTableColumns(table_name),
-      UnorderedElementsAre(FieldsAre(StrCaseEq("A"), COLUMN_TYPE_INTEGER),
-                           FieldsAre(StrCaseEq("B"), COLUMN_TYPE_INTEGER),
-                           FieldsAre(StrCaseEq("C"), COLUMN_TYPE_TEXT)));
+      this->connection_.table_fields(table_name),
+      UnorderedElementsAre(FieldsAre(StrCaseEq("A"), field_type::INTEGER),
+                           FieldsAre(StrCaseEq("B"), field_type::INTEGER),
+                           FieldsAre(StrCaseEq("C"), field_type::TEXT)));
 }
 
 TYPED_TEST(ConnectionTest, TestIndexes) {
   const auto& table_name = this->table_name_;
 
-  EXPECT_FALSE(this->connection_.DoesIndexExist(table_name, "A_Index"));
+  EXPECT_FALSE(this->connection_.index_exists(table_name, "A_Index"));
 
-  this->connection_.Execute(
+  this->connection_.query(
       std::format("CREATE INDEX A_Index ON {}(A)", table_name));
 
-  EXPECT_TRUE(this->connection_.DoesIndexExist(table_name, "A_Index"));
-  EXPECT_FALSE(this->connection_.DoesIndexExist(table_name, "B_Index"));
+  EXPECT_TRUE(this->connection_.index_exists(table_name, "A_Index"));
+  EXPECT_FALSE(this->connection_.index_exists(table_name, "B_Index"));
 }
 
 template <class T>
@@ -152,12 +152,12 @@ void ConnectionTest<T>::InsertTestData(std::span<const Row> rows) {
       connection_, std::format("INSERT INTO {} VALUES(?, ?, ?)", table_name_)};
 
   for (auto& row : rows) {
-    insert_statement.Bind(0, row.a);
-    insert_statement.Bind(1, row.b);
-    insert_statement.Bind(2, row.c);
-    insert_statement.Run();
-    EXPECT_EQ(1, connection_.GetLastChangeCount());
-    insert_statement.Reset();
+    insert_statement.bind(0, row.a);
+    insert_statement.bind(1, row.b);
+    insert_statement.bind(2, row.c);
+    insert_statement.query();
+    EXPECT_EQ(1, connection_.last_change_count());
+    insert_statement.reset();
   }
 }
 
@@ -165,17 +165,17 @@ template <class T>
 Row ReadRow(T& statement) {
   std::vector<Row> rows;
 
-  while (statement.Step()) {
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(0));
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(1));
-    EXPECT_EQ(COLUMN_TYPE_TEXT, statement.GetColumnType(2));
-    auto a = statement.GetColumnInt(0);
-    auto b = statement.GetColumnInt64(1);
-    auto c = statement.GetColumnString(2);
+  while (statement.next()) {
+    EXPECT_EQ(field_type::INTEGER, statement.field_type(0));
+    EXPECT_EQ(field_type::INTEGER, statement.field_type(1));
+    EXPECT_EQ(field_type::TEXT, statement.field_type(2));
+    auto a = statement.get_int(0);
+    auto b = statement.get_int64(1);
+    auto c = statement.get_string(2);
     rows.emplace_back(a, b, std::move(c));
   }
 
-  statement.Reset();
+  statement.reset();
 
   return rows;
 }
@@ -184,17 +184,17 @@ template <class T>
 std::vector<Row> ReadAllRows(T& statement) {
   std::vector<Row> rows;
 
-  while (statement.Step()) {
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(0));
-    EXPECT_EQ(COLUMN_TYPE_INTEGER, statement.GetColumnType(1));
-    EXPECT_EQ(COLUMN_TYPE_TEXT, statement.GetColumnType(2));
-    auto a = statement.GetColumnInt(0);
-    auto b = statement.GetColumnInt64(1);
-    auto c = statement.GetColumnString(2);
+  while (statement.next()) {
+    EXPECT_EQ(field_type::INTEGER, statement.field_type(0));
+    EXPECT_EQ(field_type::INTEGER, statement.field_type(1));
+    EXPECT_EQ(field_type::TEXT, statement.field_type(2));
+    auto a = statement.get_int(0);
+    auto b = statement.get_int64(1);
+    auto c = statement.get_string(2);
     rows.emplace_back(a, b, std::move(c));
   }
 
-  statement.Reset();
+  statement.reset();
 
   return rows;
 }
@@ -206,7 +206,7 @@ TYPED_TEST(ConnectionTest, TestStatements) {
   this->InsertTestData(initial_rows);
 
   using ConnectionType = TypeParam;
-  using StatementType = ConnectionType::Statement;
+  using StatementType = ConnectionType::statement;
 
   StatementType statement{this->connection_,
                           std::format("SELECT * FROM {}", table_name)};
@@ -222,28 +222,28 @@ TYPED_TEST(ConnectionTest, ParametrizedStatement) {
   this->InsertTestData(initial_rows);
 
   using ConnectionType = TypeParam;
-  using StatementType = ConnectionType::Statement;
+  using StatementType = ConnectionType::statement;
 
   StatementType statement{
       this->connection_,
       std::format("SELECT * FROM {} WHERE a=? AND b=? AND c=?", table_name)};
 
   // All parameters are null.
-  statement.BindNull(0);
-  statement.BindNull(1);
-  statement.BindNull(2);
+  statement.bind_null(0);
+  statement.bind_null(1);
+  statement.bind_null(2);
   EXPECT_THAT(ReadAllRows(statement), ElementsAre());
 
-  // Bind one parameter.
-  statement.Bind(0, 10);
-  statement.BindNull(1);
-  statement.BindNull(2);
+  // bind one parameter.
+  statement.bind(0, 10);
+  statement.bind_null(1);
+  statement.bind_null(2);
   EXPECT_THAT(ReadAllRows(statement), ElementsAre());
 
-  // Bind all parameters.
-  statement.Bind(0, 10);
-  statement.Bind(1, 100);
-  statement.Bind(2, "A");
+  // bind all parameters.
+  statement.bind(0, 10);
+  statement.bind(1, 100);
+  statement.bind(2, "A");
   EXPECT_THAT(ReadAllRows(statement), ElementsAre(Row{10, 100, "A"}));
 }
 

@@ -10,53 +10,49 @@
 namespace sql {
 
 template <class ConnectionType, class StatementType>
-class Connection::ConnectionModelImpl : public ConnectionModel {
+class connection::connection_model_impl : public connection_model {
  public:
-  virtual void Open(const OpenParams& params) override {
-    connection_.Open(params);
+  virtual void open(const open_params& params) override {
+    connection_.open(params);
   }
 
-  virtual void Close() override { connection_.Close(); }
+  virtual void close() override { connection_.close(); }
 
-  virtual void Execute(std::string_view sql) override {
-    connection_.Execute(sql);
+  virtual void query(std::string_view sql) override { connection_.query(sql); }
+
+  virtual void start() override { connection_.start(); }
+
+  virtual void commit() override { connection_.commit(); }
+
+  virtual void rollback() override { connection_.rollback(); }
+
+  virtual int last_change_count() const override {
+    return connection_.last_change_count();
   }
 
-  virtual void BeginTransaction() override { connection_.BeginTransaction(); }
-
-  virtual void CommitTransaction() override { connection_.CommitTransaction(); }
-
-  virtual void RollbackTransaction() override {
-    connection_.RollbackTransaction();
+  virtual bool table_exists(std::string_view table_name) const override {
+    return connection_.table_exists(table_name);
   }
 
-  virtual int GetLastChangeCount() const override {
-    return connection_.GetLastChangeCount();
+  virtual bool field_exists(std::string_view table_name,
+                            std::string_view column_name) const override {
+    return connection_.field_exists(table_name, column_name);
   }
 
-  virtual bool DoesTableExist(std::string_view table_name) const override {
-    return connection_.DoesTableExist(table_name);
+  virtual bool index_exists(std::string_view table_name,
+                            std::string_view index_name) const override {
+    return connection_.index_exists(table_name, index_name);
   }
 
-  virtual bool DoesColumnExist(std::string_view table_name,
-                               std::string_view column_name) const override {
-    return connection_.DoesColumnExist(table_name, column_name);
-  }
-
-  virtual bool DoesIndexExist(std::string_view table_name,
-                              std::string_view index_name) const override {
-    return connection_.DoesIndexExist(table_name, index_name);
-  }
-
-  virtual std::vector<Column> GetTableColumns(
+  virtual std::vector<field_info> table_fields(
       std::string_view table_name) const override {
-    return connection_.GetTableColumns(table_name);
+    return connection_.table_fields(table_name);
   }
 
-  virtual std::unique_ptr<StatementModel> CreateStatementModel(
+  virtual std::unique_ptr<statement_model> create_statement_model(
       std::string_view sql) override {
-    return std::make_unique<StatementModelImpl<ConnectionType, StatementType>>(
-        connection_, sql);
+    return std::make_unique<
+        statement_model_impl<ConnectionType, StatementType>>(connection_, sql);
   }
 
  private:
@@ -64,100 +60,100 @@ class Connection::ConnectionModelImpl : public ConnectionModel {
 };
 
 template <class ConnectionType, class StatementType>
-class Connection::StatementModelImpl : public StatementModel {
+class connection::statement_model_impl : public statement_model {
  public:
-  StatementModelImpl() = default;
+  statement_model_impl() = default;
 
-  StatementModelImpl(ConnectionType& connection, std::string_view sql)
+  statement_model_impl(ConnectionType& connection, std::string_view sql)
       : statement_{connection, sql} {}
 
-  virtual bool IsInitialized() const override {
-    return statement_.IsInitialized();
+  virtual bool is_prepared() const override {
+    return statement_.is_prepared();
   };
 
-  virtual void BindNull(unsigned column) override {
-    statement_.BindNull(column);
+  virtual void bind_null(unsigned column) override {
+    statement_.bind_null(column);
   }
-  virtual void Bind(unsigned column, bool value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, bool value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, int value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, int value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, int64_t value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, int64_t value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, double value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, double value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, const char* value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, const char* value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, const char16_t* value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, const char16_t* value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, std::string_view value) override {
-    statement_.Bind(column, value);
+  virtual void bind(unsigned column, std::string_view value) override {
+    statement_.bind(column, value);
   }
-  virtual void Bind(unsigned column, std::u16string_view value) override {
-    statement_.Bind(column, value);
-  }
-
-  virtual size_t GetColumnCount() const override {
-    return statement_.GetColumnCount();
+  virtual void bind(unsigned column, std::u16string_view value) override {
+    statement_.bind(column, value);
   }
 
-  virtual ColumnType GetColumnType(unsigned column) const override {
-    return statement_.GetColumnType(column);
+  virtual size_t field_count() const override {
+    return statement_.field_count();
   }
 
-  virtual bool GetColumnBool(unsigned column) const override {
-    return statement_.GetColumnBool(column);
-  }
-  virtual int GetColumnInt(unsigned column) const override {
-    return statement_.GetColumnInt(column);
-  }
-  virtual int64_t GetColumnInt64(unsigned column) const override {
-    return statement_.GetColumnInt64(column);
-  }
-  virtual double GetColumnDouble(unsigned column) const override {
-    return statement_.GetColumnDouble(column);
-  }
-  virtual std::string GetColumnString(unsigned column) const override {
-    return statement_.GetColumnString(column);
-  }
-  virtual std::u16string GetColumnString16(unsigned column) const override {
-    return statement_.GetColumnString16(column);
+  virtual sql::field_type field_type(unsigned column) const override {
+    return statement_.field_type(column);
   }
 
-  virtual void Run() override { statement_.Run(); }
-  virtual bool Step() override { return statement_.Step(); }
-  virtual void Reset() override { statement_.Reset(); }
-  virtual void Close() override { statement_.Close(); }
+  virtual bool get_bool(unsigned column) const override {
+    return statement_.get_bool(column);
+  }
+  virtual int get_int(unsigned column) const override {
+    return statement_.get_int(column);
+  }
+  virtual int64_t get_int64(unsigned column) const override {
+    return statement_.get_int64(column);
+  }
+  virtual double get_double(unsigned column) const override {
+    return statement_.get_double(column);
+  }
+  virtual std::string get_string(unsigned column) const override {
+    return statement_.get_string(column);
+  }
+  virtual std::u16string get_string16(unsigned column) const override {
+    return statement_.get_string16(column);
+  }
+
+  virtual void query() override { statement_.query(); }
+  virtual bool next() override { return statement_.next(); }
+  virtual void reset() override { statement_.reset(); }
+  virtual void close() override { statement_.close(); }
 
  private:
   StatementType statement_;
 };
 
-Connection::Connection(const OpenParams& params) {
-  Open(params);
+connection::connection(const open_params& params) {
+  open(params);
 }
 
-void Connection::Open(const OpenParams& params) {
+void connection::open(const open_params& params) {
   assert(!model_);
 
   if (params.driver.empty() || params.driver == "sqlite" ||
       params.driver == "sqlite3") {
     model_ = std::make_unique<
-        ConnectionModelImpl<sqlite3::Connection, sqlite3::Statement>>();
+        connection_model_impl<sqlite3::connection, sqlite3::statement>>();
   } else if (params.driver == "postgres" || params.driver == "postgresql") {
     model_ = std::make_unique<
-        ConnectionModelImpl<postgresql::Connection, postgresql::Statement>>();
+        connection_model_impl<postgresql::connection, postgresql::statement>>();
   } else {
     throw std::runtime_error{"Unknown SQL driver"};
   }
 
-  model_->Open(params);
+  model_->open(params);
 }
 
 }  // namespace sql

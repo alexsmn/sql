@@ -7,55 +7,55 @@
 
 namespace sql {
 
-class Connection;
+class connection;
 
-class Statement {
+class statement {
  public:
-  Statement() = default;
-  Statement(Connection& connection, std::string_view sql);
+  statement() = default;
+  statement(connection& connection, std::string_view sql);
 
-  Statement(const Statement&) = delete;
-  Statement& operator=(const Statement&) = delete;
+  statement(const statement&) = delete;
+  statement& operator=(const statement&) = delete;
 
-  Statement(Statement&& source) noexcept : model_{std::move(source.model_)} {}
-  Statement& operator=(Statement&& source) noexcept {
+  statement(statement&& source) noexcept : model_{std::move(source.model_)} {}
+  statement& operator=(statement&& source) noexcept {
     model_ = std::move(source.model_);
     return *this;
   }
 
-  bool IsInitialized() const;
+  bool is_prepared() const;
 
-  void Init(Connection& connection, std::string_view sql);
+  void prepare(connection& connection, std::string_view sql);
 
-  void BindNull(unsigned column);
-  void Bind(unsigned column, bool value);
-  void Bind(unsigned column, int value);
-  void Bind(unsigned column, int64_t value);
-  void Bind(unsigned column, double value);
+  void bind_null(unsigned column);
+  void bind(unsigned column, bool value);
+  void bind(unsigned column, int value);
+  void bind(unsigned column, int64_t value);
+  void bind(unsigned column, double value);
   // Add explicit c-string parameters to avoid implicit cast to `bool`.
-  void Bind(unsigned column, const char* value);
-  void Bind(unsigned column, const char16_t* value);
-  void Bind(unsigned column, std::string_view value);
-  void Bind(unsigned column, std::u16string_view value);
+  void bind(unsigned column, const char* value);
+  void bind(unsigned column, const char16_t* value);
+  void bind(unsigned column, std::string_view value);
+  void bind(unsigned column, std::u16string_view value);
 
-  size_t GetColumnCount() const;
-  ColumnType GetColumnType(unsigned column) const;
+  size_t field_count() const;
+  field_type field_type(unsigned column) const;
 
-  bool GetColumnBool(unsigned column) const;
-  int GetColumnInt(unsigned column) const;
-  int64_t GetColumnInt64(unsigned column) const;
-  double GetColumnDouble(unsigned column) const;
-  std::string GetColumnString(unsigned column) const;
-  std::u16string GetColumnString16(unsigned column) const;
+  bool get_bool(unsigned column) const;
+  int get_int(unsigned column) const;
+  int64_t get_int64(unsigned column) const;
+  double get_double(unsigned column) const;
+  std::string get_string(unsigned column) const;
+  std::u16string get_string16(unsigned column) const;
 
-  void Run();
-  bool Step();
-  void Reset();
+  void query();
+  bool next();
+  void reset();
 
-  void Close();
+  void close();
 
  private:
-  std::unique_ptr<Connection::StatementModel> model_;
+  std::unique_ptr<connection::statement_model> model_;
 };
 
 }  // namespace sql

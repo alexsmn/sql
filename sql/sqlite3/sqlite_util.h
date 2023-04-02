@@ -6,18 +6,18 @@
 
 namespace sql::sqlite3 {
 
-inline constexpr std::pair<std::string_view, ColumnType>
+inline constexpr std::pair<std::string_view, field_type>
     kSqliteColumnTypeNames[] = {
-        {"INTEGER", COLUMN_TYPE_INTEGER}, {"SMALLINT", COLUMN_TYPE_INTEGER},
-        {"BIGINT", COLUMN_TYPE_INTEGER},  {"TEXT", COLUMN_TYPE_TEXT},
-        {"FLOAT", COLUMN_TYPE_FLOAT},     {"REAL", COLUMN_TYPE_FLOAT},
+        {"INTEGER", field_type::INTEGER}, {"SMALLINT", field_type::INTEGER},
+        {"BIGINT", field_type::INTEGER},  {"TEXT", field_type::TEXT},
+        {"FLOAT", field_type::FLOAT},     {"REAL", field_type::FLOAT},
 };
 
-inline ColumnType ParseSqliteColumnType(std::string_view str) {
+inline field_type ParseSqliteColumnType(std::string_view str) {
   auto i = std::ranges::find_if(kSqliteColumnTypeNames, [str](const auto& p) {
     return boost::algorithm::iequals(p.first, str);
   });
-  return i != std::end(kSqliteColumnTypeNames) ? i->second : COLUMN_TYPE_NULL;
+  return i != std::end(kSqliteColumnTypeNames) ? i->second : field_type::EMPTY;
 }
 
 }  // namespace sql::sqlite3
