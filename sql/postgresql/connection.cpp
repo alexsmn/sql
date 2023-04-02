@@ -176,7 +176,7 @@ std::vector<field_info> connection::table_fields(
 
   while (table_columns_statement_->next()) {
     auto field_name = table_columns_statement_->at(0).as_string();
-    auto field_type_string = table_columns_statement_->at(1).as_string();
+    auto field_type_string = table_columns_statement_->at(1).as_string_view();
     auto field_type = parse_field_type(field_type_string);
     assert(field_type != field_type::EMPTY);
     fields.emplace_back(std::move(field_name), field_type);
