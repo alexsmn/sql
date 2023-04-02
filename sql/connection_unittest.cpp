@@ -21,7 +21,7 @@ struct ConnectionTraits;
 template <>
 struct ConnectionTraits<sql::sqlite3::Connection> {
   sql::OpenParams GetOpenParams() {
-    return {.driver = "sqlite", .path = temp_dir_.get()};
+    return {.driver = "sqlite", .path = temp_dir_.get() / "database.sqlite3"};
   }
 
   ScopedTempDir temp_dir_;
