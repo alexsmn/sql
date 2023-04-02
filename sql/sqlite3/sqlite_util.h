@@ -9,7 +9,7 @@ inline constexpr std::pair<std::string_view, ColumnType>
     kSqliteColumnTypeNames[] = {
         {"INTEGER", COLUMN_TYPE_INTEGER}, {"SMALLINT", COLUMN_TYPE_INTEGER},
         {"BIGINT", COLUMN_TYPE_INTEGER},  {"TEXT", COLUMN_TYPE_TEXT},
-        {"REAL", COLUMN_TYPE_FLOAT},
+        {"FLOAT", COLUMN_TYPE_FLOAT},     {"REAL", COLUMN_TYPE_FLOAT},
 };
 
 inline ColumnType ParseSqliteColumnType(std::string_view str) {
