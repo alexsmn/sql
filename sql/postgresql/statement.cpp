@@ -123,36 +123,36 @@ size_t statement::field_count() const {
   return 0;
 }
 
-field_view statement::Get(unsigned column) const {
+field_view statement::at(unsigned column) const {
   return field_view{result_, static_cast<int>(column)};
 }
 
 field_type statement::field_type(unsigned column) const {
-  return Get(column).GetType();
+  return at(column).type();
 }
 
 bool statement::get_bool(unsigned column) const {
-  return Get(column).get_bool();
+  return at(column).get_bool();
 }
 
 int statement::get_int(unsigned column) const {
-  return Get(column).get_int();
+  return at(column).get_int();
 }
 
 int64_t statement::get_int64(unsigned column) const {
-  return Get(column).get_int64();
+  return at(column).get_int64();
 }
 
 double statement::get_double(unsigned column) const {
-  return Get(column).get_double();
+  return at(column).get_double();
 }
 
 std::string statement::get_string(unsigned column) const {
-  return Get(column).get_string();
+  return at(column).get_string();
 }
 
 std::u16string statement::get_string16(unsigned column) const {
-  return Get(column).get_string16();
+  return at(column).get_string16();
 }
 
 void statement::query() {
@@ -201,18 +201,6 @@ void statement::close() {
     PQexec(conn_, std::format("DEALLOCATE {}", name_).c_str());
     name_ = {};
   }
-}
-
-statement::ParamBuffer& statement::GetParamBuffer(unsigned column, Oid type) {
-  if (params_.size() <= column) {
-    throw Exception{
-        "The parameter index exceeds the parameter count in the prepared SQL "
-        "statement"};
-  }
-  auto& param = params_[column];
-  param.type = type;
-  param.buffer.clear();
-  return param.buffer;
 }
 
 void statement::query(bool single_row) {

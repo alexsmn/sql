@@ -178,7 +178,6 @@ std::vector<field_info> connection::table_fields(
     auto column_name = table_columns_statement_->get_string(0);
     auto column_type = table_columns_statement_->get_string(1);
     auto parsed_column_type = ParsePostgresColumnType(column_type);
-    // TODO: Handle properly.
     assert(parsed_column_type != field_type::EMPTY);
     columns.emplace_back(std::move(column_name), parsed_column_type);
   }

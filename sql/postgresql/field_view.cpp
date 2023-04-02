@@ -18,7 +18,7 @@ field_view::field_view(const result& result, int field_index)
   assert(result_.field_format(field_index_) == 1);
 }
 
-field_type field_view::GetType() const {
+field_type field_view::type() const {
   if (result_.is_null(field_index_)) {
     return field_type::EMPTY;
   }

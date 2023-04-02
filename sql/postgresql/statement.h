@@ -39,7 +39,7 @@ class statement {
   size_t field_count() const;
   field_type field_type(unsigned column) const;
 
-  field_view Get(unsigned column) const;
+  field_view at(unsigned column) const;
   bool get_bool(unsigned column) const;
   int get_int(unsigned column) const;
   int64_t get_int64(unsigned column) const;
@@ -62,8 +62,6 @@ class statement {
     // Empty buffer is used for null values.
     ParamBuffer buffer;
   };
-
-  ParamBuffer& GetParamBuffer(unsigned column, Oid type);
 
   void query(bool single_row);
 

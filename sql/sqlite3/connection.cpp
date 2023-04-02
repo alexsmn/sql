@@ -69,7 +69,7 @@ void connection::query(std::string_view sql) {
 }
 
 bool connection::table_exists(std::string_view table_name) const {
-  if (!does_table_exist_statement_.get()) {
+  if (!does_table_exist_statement_) {
     does_table_exist_statement_ = std::make_unique<statement>(
         *const_cast<connection*>(this),
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?");
@@ -130,7 +130,7 @@ bool connection::index_exists(std::string_view table_name,
 }
 
 void connection::start() {
-  if (!begin_transaction_statement_.get()) {
+  if (!begin_transaction_statement_) {
     begin_transaction_statement_ =
         std::make_unique<statement>(*this, "BEGIN TRANSACTION");
   }
@@ -140,7 +140,7 @@ void connection::start() {
 }
 
 void connection::commit() {
-  if (!commit_transaction_statement_.get()) {
+  if (!commit_transaction_statement_) {
     commit_transaction_statement_ =
         std::make_unique<statement>(*this, "COMMIT");
   }
@@ -150,7 +150,7 @@ void connection::commit() {
 }
 
 void connection::rollback() {
-  if (!rollback_transaction_statement_.get()) {
+  if (!rollback_transaction_statement_) {
     rollback_transaction_statement_ =
         std::make_unique<statement>(*this, "ROLLBACK");
   }
@@ -166,20 +166,20 @@ int connection::last_change_count() const {
 
 std::vector<field_info> connection::table_fields(
     std::string_view table_name) const {
-  std::vector<field_info> columns;
+  std::vector<field_info> fields;
 
   statement statement{*const_cast<connection*>(this),
                       std::format("PRAGMA TABLE_INFO({})", table_name)};
 
   while (statement.next()) {
     const auto& field_name = statement.get_string(1);
-    const auto& field_type = statement.get_string(2);
-    const auto data_type = ParseSqliteColumnType(field_type);
-    assert(data_type != field_type::EMPTY);
-    columns.emplace_back(field_info{field_name, data_type});
+    const auto& field_type_string = statement.get_string(2);
+    const auto field_type = parse_field_type(field_type_string);
+    assert(field_type != field_type::EMPTY);
+    fields.emplace_back(field_info{field_name, field_type});
   }
 
-  return columns;
+  return fields;
 }
 
 }  // namespace sql::sqlite3

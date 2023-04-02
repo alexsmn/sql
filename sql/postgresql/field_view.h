@@ -12,7 +12,7 @@ class field_view {
  public:
   field_view(const result& result, int field_index);
 
-  field_type GetType() const;
+  field_type type() const;
 
   bool get_bool() const;
   int get_int() const;
