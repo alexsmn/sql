@@ -43,7 +43,9 @@ class Result {
   }
 
   ExecStatusType status() const { return PQresultStatus(result_); }
-  const char* error_message() const { return PQresultErrorMessage(result_); }
+  std::string_view error_message() const {
+    return PQresultErrorMessage(result_);
+  }
 
   bool is_null(int field_index) const {
     return PQgetisnull(result_, 0, field_index);
@@ -56,7 +58,9 @@ class Result {
   }
 
   int field_count() const { return PQnfields(result_); }
-  const char* field_name(int index) const { return PQfname(result_, index); }
+  std::string_view field_name(int index) const {
+    return PQfname(result_, index);
+  }
   int field_format(int index) const { return PQfformat(result_, index); }
   int field_type(int index) const { return PQftype(result_, index); }
   int field_size(int index) const { return PQfsize(result_, index); }
@@ -65,8 +69,8 @@ class Result {
   Oid param_type(int index) const { return PQparamtype(result_, index); }
 
   int affected_row_count() const {
-    auto* tuples = PQcmdTuples(result_);
-    return tuples ? std::stoi(tuples) : 0;
+    const char* tuples = PQcmdTuples(result_);
+    return tuples && *tuples ? std::stoi(tuples) : 0;
   }
 
  private:

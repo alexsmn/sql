@@ -51,16 +51,28 @@ int FieldView::GetInt() const {
 }
 
 int64_t FieldView::GetInt64() const {
+  if (result_.is_null(field_index_)) {
+    return 0;
+  }
+
   return GetBufferInt64(result_.field_type(field_index_),
                         result_.value(field_index_));
 }
 
 double FieldView::GetDouble() const {
+  if (result_.is_null(field_index_)) {
+    return 0;
+  }
+
   return GetBufferDouble(result_.field_type(field_index_),
                          result_.value(field_index_));
 }
 
 std::string FieldView::GetString() const {
+  if (result_.is_null(field_index_)) {
+    return {};
+  }
+
   auto buffer = result_.value(field_index_);
   return std::string{buffer.begin(), buffer.end()};
 }
