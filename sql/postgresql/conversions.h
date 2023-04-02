@@ -93,6 +93,7 @@ inline std::string_view GetBufferStringView(Oid type,
   switch (type) {
     case NAMEOID:
     case TEXTOID:
+    case VARCHAROID:
       return std::string_view{buffer.begin(), buffer.end()};
     default:
       assert(false);
@@ -106,6 +107,7 @@ inline void SetBufferValue(std::string_view str,
   switch (type) {
     case NAMEOID:
     case TEXTOID:
+    case VARCHAROID:
       buffer.assign(str.begin(), str.end());
       return;
     default:
