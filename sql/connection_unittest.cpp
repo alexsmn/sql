@@ -136,14 +136,16 @@ TYPED_TEST(ConnectionTest, TestColumns) {
 
 TYPED_TEST(ConnectionTest, TestIndexes) {
   const auto& table_name = this->table_name_;
+  const auto index_name = std::format("{}_index", table_name);
+  const auto missing_index_name = std::format("{}_missing_index", table_name);
 
-  EXPECT_FALSE(this->connection_.index_exists(table_name, "A_Index"));
+  EXPECT_FALSE(this->connection_.index_exists(table_name, index_name));
 
   this->connection_.query(
-      std::format("CREATE INDEX A_Index ON {}(A)", table_name));
+      std::format("CREATE INDEX {} ON {}(A)", index_name, table_name));
 
-  EXPECT_TRUE(this->connection_.index_exists(table_name, "A_Index"));
-  EXPECT_FALSE(this->connection_.index_exists(table_name, "B_Index"));
+  EXPECT_TRUE(this->connection_.index_exists(table_name, index_name));
+  EXPECT_FALSE(this->connection_.index_exists(table_name, missing_index_name));
 }
 
 template <class T>
