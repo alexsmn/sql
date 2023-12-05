@@ -35,9 +35,9 @@ void statement::prepare(connection& connection, std::string_view sql) {
   assert(connection.db_);
 
   int error = sqlite3_prepare_v2(connection.db_, sql.data(),
-                                 static_cast<int>(sql.size()), &stmt_, NULL);
+                                 static_cast<int>(sql.size()), &stmt_, nullptr);
   if (error != SQLITE_OK) {
-    stmt_ = NULL;
+    stmt_ = nullptr;
     const char* message = sqlite3_errmsg(connection.db_);
     throw Exception{message};
   }
@@ -98,7 +98,7 @@ size_t statement::field_count() const {
   return sqlite3_column_count(stmt_);
 }
 
-field_type statement::field_type(unsigned column) const {
+field_type statement::type(unsigned column) const {
   // Verify that our enum matches sqlite's values.
   static_assert(static_cast<int>(sql::field_type::INTEGER) == SQLITE_INTEGER,
                 "BadIntegerType");
@@ -148,7 +148,7 @@ void statement::reset() {
 void statement::close() {
   if (stmt_) {
     sqlite3_finalize(stmt_);
-    stmt_ = NULL;
+    stmt_ = nullptr;
   }
 }
 

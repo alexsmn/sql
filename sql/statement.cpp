@@ -54,8 +54,8 @@ size_t statement::field_count() const {
   return model_->field_count();
 }
 
-field_type statement::field_type(unsigned column) const {
-  return model_->field_type(column);
+field_type statement::type(unsigned column) const {
+  return model_->type(column);
 }
 
 field_view statement::at(unsigned column) const {

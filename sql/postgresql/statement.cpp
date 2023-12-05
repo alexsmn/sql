@@ -123,7 +123,7 @@ size_t statement::field_count() const {
   return 0;
 }
 
-field_type statement::field_type(unsigned column) const {
+field_type statement::type(unsigned column) const {
   return at(column).type();
 }
 

@@ -9,7 +9,8 @@ class statement;
 
 class field_view {
  public:
-  field_type type() const { return statement_.field_type(field_index_); }
+  bool is_null() const { return type() == field_type::EMPTY; }
+  field_type type() const { return statement_.type(field_index_); }
 
   bool as_bool() const { return statement_.as_bool(field_index_); }
   int as_int() const { return statement_.as_int(field_index_); }

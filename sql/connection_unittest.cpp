@@ -168,9 +168,9 @@ Row ReadRow(T& statement) {
   std::vector<Row> rows;
 
   while (statement.next()) {
-    EXPECT_EQ(field_type::INTEGER, statement.field_type(0));
-    EXPECT_EQ(field_type::INTEGER, statement.field_type(1));
-    EXPECT_EQ(field_type::TEXT, statement.field_type(2));
+    EXPECT_EQ(field_type::INTEGER, statement.type(0));
+    EXPECT_EQ(field_type::INTEGER, statement.type(1));
+    EXPECT_EQ(field_type::TEXT, statement.type(2));
     auto a = statement.get_int(0);
     auto b = statement.get_int64(1);
     auto c = statement.get_string(2);
@@ -187,9 +187,9 @@ std::vector<Row> ReadAllRows(T& statement) {
   std::vector<Row> rows;
 
   while (statement.next()) {
-    EXPECT_EQ(field_type::INTEGER, statement.field_type(0));
-    EXPECT_EQ(field_type::INTEGER, statement.field_type(1));
-    EXPECT_EQ(field_type::TEXT, statement.field_type(2));
+    EXPECT_EQ(field_type::INTEGER, statement.type(0));
+    EXPECT_EQ(field_type::INTEGER, statement.type(1));
+    EXPECT_EQ(field_type::TEXT, statement.type(2));
     auto a = statement.at(0).as_int();
     auto b = statement.at(1).as_int64();
     auto c = statement.at(2).as_string();

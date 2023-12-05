@@ -71,7 +71,7 @@ class connection {
     virtual void bind(unsigned column, std::u16string_view value) = 0;
 
     virtual size_t field_count() const = 0;
-    virtual field_type field_type(unsigned column) const = 0;
+    virtual field_type type(unsigned column) const = 0;
 
     virtual bool as_bool(unsigned column) const = 0;
     virtual int as_int(unsigned column) const = 0;

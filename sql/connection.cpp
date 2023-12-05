@@ -111,8 +111,8 @@ class connection::statement_model_impl : public statement_model {
     return statement_.field_count();
   }
 
-  virtual sql::field_type field_type(unsigned column) const override {
-    return statement_.field_type(column);
+  virtual sql::field_type type(unsigned column) const override {
+    return statement_.type(column);
   }
 
   virtual bool as_bool(unsigned column) const override {

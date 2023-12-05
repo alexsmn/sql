@@ -40,7 +40,7 @@ class statement {
   void bind(unsigned column, std::u16string_view value);
 
   size_t field_count() const;
-  field_type field_type(unsigned column) const;
+  field_type type(unsigned column) const;
   field_view at(unsigned column) const;
 
   void query();
