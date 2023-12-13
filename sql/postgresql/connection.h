@@ -65,7 +65,8 @@ class connection {
 
   std::atomic<int> last_change_count_ = 0;
 
-  friend class statement;
+  // Avoid conflicts with the local `using statement`.
+  friend class sql::postgresql::statement;
 };
 
 }  // namespace sql::postgresql

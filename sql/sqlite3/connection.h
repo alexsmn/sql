@@ -59,7 +59,8 @@ class connection {
   mutable std::string does_column_exist_table_name_;
   mutable std::string does_index_exist_table_name_;
 
-  friend class statement;
+  // Avoid conflicts with the local `using statement`.
+  friend class sql::sqlite3::statement;
 };
 
 }  // namespace sql::sqlite3

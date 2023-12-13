@@ -125,7 +125,8 @@ class connection {
   class statement_model_impl;
 
   friend class field_view;
-  friend class statement;
+  // Avoid conflicts with the local `using statement`.
+  friend class sql::statement;
 };
 
 }  // namespace sql

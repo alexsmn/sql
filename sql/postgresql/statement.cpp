@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <cassert>
+#include <format>
 #include <ranges>
 
 namespace sql::postgresql {

@@ -79,8 +79,9 @@ TYPED_TEST_SUITE(ConnectionTest, connection_types);
 std::vector<Row> GenerateRows() {
   std::vector<Row> rows;
   for (int i = 1; i <= 3; ++i) {
-    rows.push_back(
-        Row{.a = i * 10, .b = i * 100, .c = static_cast<char>('A' + i - 1)});
+    rows.emplace_back(Row{.a = i * 10,
+                          .b = i * 100,
+                          .c = std::string{1, static_cast<char>('A' + i - 1)}});
   }
   return rows;
 }
@@ -161,25 +162,6 @@ void ConnectionTest<T>::InsertTestData(std::span<const Row> rows) {
     EXPECT_EQ(1, connection_.last_change_count());
     insert_statement.reset();
   }
-}
-
-template <class T>
-Row ReadRow(T& statement) {
-  std::vector<Row> rows;
-
-  while (statement.next()) {
-    EXPECT_EQ(field_type::INTEGER, statement.type(0));
-    EXPECT_EQ(field_type::INTEGER, statement.type(1));
-    EXPECT_EQ(field_type::TEXT, statement.type(2));
-    auto a = statement.get_int(0);
-    auto b = statement.get_int64(1);
-    auto c = statement.get_string(2);
-    rows.emplace_back(a, b, std::move(c));
-  }
-
-  statement.reset();
-
-  return rows;
 }
 
 template <class T>
