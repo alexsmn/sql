@@ -19,6 +19,8 @@ struct open_params {
 struct field_info {
   std::string name;
   field_type type;
+
+  bool operator==(const field_info& other) const = default;
 };
 
 }  // namespace sql

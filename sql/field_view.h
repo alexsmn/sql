@@ -29,7 +29,7 @@ class field_view {
       : statement_{statement}, field_index_{field_index} {}
 
   connection::statement_model& statement_;
-  int field_index_;
+  const int field_index_;
 
   friend class statement;
 };

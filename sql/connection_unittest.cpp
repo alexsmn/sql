@@ -81,7 +81,7 @@ std::vector<Row> GenerateRows() {
   for (int i = 1; i <= 3; ++i) {
     rows.emplace_back(Row{.a = i * 10,
                           .b = i * 100,
-                          .c = std::string{1, static_cast<char>('A' + i - 1)}});
+                          .c = std::string(1, static_cast<char>('A' + i - 1))});
   }
   return rows;
 }
