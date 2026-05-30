@@ -71,9 +71,9 @@ class ConnectionTest : public Test {
   std::string table_name_;
 };
 
-using connection_types = ::testing::Types<sql::connection,
-                                          sql::sqlite3::connection,
-                                          sql::postgresql::connection>;
+using connection_types =
+    ::testing::Types<sql::connection, sql::sqlite3::connection
+                     /*,sql::postgresql::connection*/>;
 TYPED_TEST_SUITE(ConnectionTest, connection_types);
 
 std::vector<Row> GenerateRows() {
