@@ -1,9 +1,12 @@
 #include "sql/connection.h"
 
-#include "sql/postgresql/connection.h"
-#include "sql/postgresql/statement.h"
 #include "sql/sqlite3/connection.h"
 #include "sql/sqlite3/statement.h"
+
+#if SQL_ENABLE_POSTGRESQL
+#include "sql/postgresql/connection.h"
+#include "sql/postgresql/statement.h"
+#endif
 
 #include <cassert>
 
@@ -164,8 +167,12 @@ void connection::open(const open_params& params) {
     model_ = std::make_unique<
         connection_model_impl<sqlite3::connection, sqlite3::statement>>();
   } else if (params.driver == "postgres" || params.driver == "postgresql") {
+#if SQL_ENABLE_POSTGRESQL
     model_ = std::make_unique<
         connection_model_impl<postgresql::connection, postgresql::statement>>();
+#else
+    throw std::runtime_error{"PostgreSQL SQL driver is not enabled"};
+#endif
   } else {
     throw std::runtime_error{"Unknown SQL driver"};
   }
