@@ -26,6 +26,9 @@ inline void SetBuffer(boost::container::small_vector<char, 8>& buffer,
 
 inline int64_t GetBufferInt64(Oid type, std::span<const char> buffer) {
   switch (type) {
+    case BOOLOID:
+      // Postgres BOOLEAN binary format is a single byte (0x00/0x01).
+      return GetBuffer<unsigned char>(buffer) != 0 ? 1 : 0;
     case INT2OID:
       return boost::endian::native_to_big(GetBuffer<int16_t>(buffer));
     case INT4OID:
@@ -43,9 +46,9 @@ inline void SetBufferValue(int64_t value,
                            boost::container::small_vector<char, 8>& buffer) {
   switch (type) {
     case BOOLOID:
-      // TODO: Validate value narrowing.
-      SetBuffer(buffer, boost::endian::native_to_big(
-                            static_cast<int32_t>(value ? 1 : 0)));
+      // Postgres BOOLEAN binary format is a single byte (0x00/0x01), not a
+      // 4-byte integer.
+      SetBuffer(buffer, static_cast<unsigned char>(value ? 1 : 0));
       return;
     case INT4OID:
       // TODO: Validate value narrowing.
