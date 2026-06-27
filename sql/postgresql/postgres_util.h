@@ -6,6 +6,8 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
+#include <algorithm>
+
 namespace sql::postgresql {
 
 inline void CheckPostgresResult(const PGresult* result) {
