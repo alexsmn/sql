@@ -2,6 +2,8 @@
   "name": "alexsmn-sql",
   "version-string": "1.0",
   "dependencies": [
+    "boost-algorithm",
+    "boost-container",
     "boost-endian",
     "boost-locale",
     "gtest",
