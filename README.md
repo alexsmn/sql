@@ -136,10 +136,14 @@ Requires **C++17** (the library uses `std::filesystem`). The unit tests
 additionally require **C++20** for designated initializers.
 
 ```sh
-cmake -S . -B build -G Ninja \
-  -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
-cmake --build build
+cmake --preset ninja
+cmake --build --preset release      # or: debug, relwithdebinfo
 ```
+
+Every product in the SCADA tree carries this same preset set (ADR 0011). Set
+`VCPKG_ROOT` in the environment; anything else machine-specific goes in
+`.scada-local.cmake` beside `build-support/`. Output lands in
+`build/ninja/bin/<config>/`.
 
 ### CMake options
 
@@ -164,7 +168,7 @@ The library target is `sql`, also aliased as `Sql::sql`.
 Unit tests are built as `sql_unittests` and registered with CTest:
 
 ```sh
-ctest --test-dir build
+ctest --preset test-release         # or: test-debug
 ```
 
 The test suite runs the same cases against both backends. The PostgreSQL
