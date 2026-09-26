@@ -1,8 +1,10 @@
 #pragma once
 
+#include <filesystem>
 #include <format>
 #include <gmock/gmock.h>
 #include <random>
+#include <string>
 
 class ScopedTempDir {
  public:

@@ -4,6 +4,7 @@
 #include <libpq/libpq-fs.h>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace sql::postgresql {
 

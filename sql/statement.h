@@ -3,8 +3,10 @@
 #include "sql/connection.h"
 #include "sql/field_view.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace sql {
 

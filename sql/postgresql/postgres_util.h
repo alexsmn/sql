@@ -5,6 +5,7 @@
 
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
+#include <string_view>
 
 #include <algorithm>
 

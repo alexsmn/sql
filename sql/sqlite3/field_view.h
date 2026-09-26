@@ -2,7 +2,9 @@
 
 #include "sql/types.h"
 
+#include <cstdint>
 #include <string>
+#include <string_view>
 
 struct sqlite3_stmt;
 

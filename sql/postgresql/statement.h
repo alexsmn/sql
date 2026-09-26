@@ -6,6 +6,7 @@
 
 #include <boost/container/small_vector.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace sql::postgresql {

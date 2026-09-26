@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <format>
 #include <gmock/gmock.h>
+#include <ostream>
 #include <random>
 #include <span>
 

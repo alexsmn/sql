@@ -5,6 +5,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 typedef struct pg_conn PGconn;

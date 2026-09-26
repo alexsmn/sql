@@ -3,6 +3,9 @@
 #include "sql/connection.h"
 #include "sql/types.h"
 
+#include <cstdint>
+#include <string_view>
+
 namespace sql {
 
 class statement;

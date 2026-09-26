@@ -1,8 +1,15 @@
 #pragma once
 
+#include "sql/exception.h"
+
 #include <boost/container/small_vector.hpp>
 #include <boost/endian/conversion.hpp>
+#include <cassert>
 #include <catalog/pg_type_d.h>
+#include <cstdint>
+#include <postgres_ext.h>
+#include <span>
+#include <string_view>
 
 namespace sql::postgresql {
 

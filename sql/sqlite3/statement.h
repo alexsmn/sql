@@ -3,7 +3,9 @@
 #include "sql/sqlite3/field_view.h"
 #include "sql/types.h"
 
+#include <cstdint>
 #include <string>
+#include <string_view>
 
 struct sqlite3_stmt;
 

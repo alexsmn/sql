@@ -2,7 +2,10 @@
 
 #include "sql/types.h"
 
+#include <cstdint>
 #include <filesystem>
+#include <memory>
+#include <string_view>
 #include <vector>
 
 namespace sql {

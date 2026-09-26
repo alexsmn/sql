@@ -1,8 +1,12 @@
 #pragma once
 
+#include "sql/types.h"
+
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <cassert>
+#include <string_view>
+#include <utility>
 
 namespace sql::sqlite3 {
 
