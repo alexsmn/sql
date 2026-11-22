@@ -132,8 +132,9 @@ Declared in `vcpkg.json`:
 
 ## Building
 
-Requires **C++17** (the library uses `std::filesystem`). The unit tests
-additionally require **C++20** for designated initializers.
+Requires **C++17** (the library uses `std::filesystem`). The SQLite and
+PostgreSQL backends and the unit tests require **C++23**, the standard the
+whole product builds at.
 
 ```sh
 cmake --preset ninja

@@ -18,4 +18,4 @@ endif()
 # UTs
 
 # Uses designated initializers.
-target_compile_features(sql_unittests PUBLIC cxx_std_20)
+target_compile_features(sql_unittests PUBLIC cxx_std_23)

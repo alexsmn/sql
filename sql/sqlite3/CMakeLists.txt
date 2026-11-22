@@ -3,7 +3,7 @@ sql_library(sql_sqlite3)
 target_include_directories(sql_sqlite3 PUBLIC "../..")
 
 # Uses std::format.
-target_compile_features(sql_sqlite3 PUBLIC cxx_std_20)
+target_compile_features(sql_sqlite3 PUBLIC cxx_std_23)
 
 # Uses Sqlite from Vcpkg.
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
